@@ -4,6 +4,19 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-09-08 (v1.2.4, connect GitHub remote)
+
+- user created the remote repo at
+  https://github.com/heikopanjas/startpage-extension; added it as `origin`
+  (SSH: `git@github.com:heikopanjas/startpage-extension.git`, matching
+  `gh`'s configured protocol) and pushed `main`
+- GitHub's repo creation added an MIT `LICENSE`; rebased the local history
+  onto it before pushing, and updated AGENTS.md's tech stack section (License:
+  MIT, Version Control: remote URL) to match
+- rationale: keep AGENTS.md's stated project state accurate now that the repo
+  has a remote and a chosen license
+- version bump: 1.2.3 to 1.2.4 (PATCH - repo/license setup, no source change)
+
 ### 2026-09-08 (v1.2.3, revert the homepage warm-up)
 
 - reverted `background.js`'s fallback to a single `tabs.update()` straight to

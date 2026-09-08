@@ -1,6 +1,6 @@
 # Project Instructions for AI Coding Agents
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-08 (2)
 
 <!-- {preamble} -->
 
@@ -30,11 +30,11 @@ webNavigation redirect strategies, and known limitations.
 - **Project generation:** [XcodeGen](https://github.com/yonaskolb/XcodeGen) reads
   `project.yml`; the `.xcodeproj` is generated, not committed. Run `./build.sh open`
   or `./build.sh generate`
-- **Version Control:** Git — initialized on `main`, no commits yet (as of
-  2026-09-08)
+- **Version Control:** Git — `main` branch, remote at
+  https://github.com/heikopanjas/startpage-extension
 - **Package Manager:** None — no npm/CocoaPods/SPM dependencies; the JS resources
   ship as plain files, no bundler
-- **License:** None chosen yet (no `LICENSE` file in the repo)
+- **License:** MIT (`LICENSE`)
 
 ## Session Protocol
 

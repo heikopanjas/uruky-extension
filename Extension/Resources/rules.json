@@ -1,0 +1,72 @@
+[
+  {
+    "id": 100,
+    "priority": 2,
+    "action": { "type": "allow" },
+    "condition": {
+      "regexFilter": "^https?://(?:www\\.)?google\\.[a-z.]+/search\\?(?:.*&)?tbm=",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+    },
+    "condition": {
+      "regexFilter": "^https?://(?:www\\.)?google\\.[a-z.]+/search\\?(?:.*&)?q=([^&]*)",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+    },
+    "condition": {
+      "regexFilter": "^https?://(?:www\\.)?duckduckgo\\.com/(?:html/)?\\?(?:.*&)?q=([^&]*)",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+    },
+    "condition": {
+      "regexFilter": "^https?://(?:www\\.)?ecosia\\.org/search\\?(?:.*&)?q=([^&]*)",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+    },
+    "condition": {
+      "regexFilter": "^https?://(?:www\\.)?bing\\.com/search\\?(?:.*&)?q=([^&]*)",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 5,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+    },
+    "condition": {
+      "regexFilter": "^https?://[a-z]+\\.search\\.yahoo\\.com/search\\?(?:.*&)?p=([^&]*)",
+      "resourceTypes": ["main_frame"]
+    }
+  }
+]

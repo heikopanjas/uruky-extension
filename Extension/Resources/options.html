@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Startpage for Safari</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        font: -apple-system-body, system-ui, sans-serif;
+        max-width: 34rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+        line-height: 1.5;
+      }
+      h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+      h2 { font-size: 1.05rem; margin-top: 2rem; }
+      p.hint { opacity: 0.7; font-size: 0.9rem; margin-top: 0.25rem; }
+      fieldset { border: none; padding: 0; margin: 0.75rem 0 0; }
+      label { display: block; padding: 0.3rem 0; }
+      input[type="text"] {
+        width: 100%;
+        padding: 0.5rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.85rem;
+        box-sizing: border-box;
+      }
+      .row { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.5rem; }
+      button { padding: 0.45rem 1.1rem; font-size: 0.95rem; }
+      #status { opacity: 0; transition: opacity 0.2s; font-size: 0.9rem; }
+      #status.visible { opacity: 0.75; }
+    </style>
+  </head>
+  <body>
+    <h1>Startpage for Safari</h1>
+    <p class="hint">
+      Safari has no API for setting a custom search engine. This extension
+      intercepts navigations to the engine Safari is configured to use and
+      rewrites them to Startpage. Some traffic still reaches the origin engine
+      before the redirect fires, and Safari's address-bar suggestions cannot be
+      intercepted at all.
+    </p>
+
+    <h2>Engines to redirect</h2>
+    <p class="hint">
+      Enable only the engine you have actually set as Safari's default. That
+      confines the unavoidable pre-redirect leak to a single provider.
+    </p>
+    <fieldset id="engines"></fieldset>
+
+    <h2>Startpage preferences token</h2>
+    <p class="hint">
+      Optional. Copy the <code>prfe</code> value from
+      startpage.com/do/settings to carry your Startpage settings on the query
+      string. Unlike the settings cookie, this survives Private Browsing.
+    </p>
+    <input type="text" id="prfe" spellcheck="false" autocomplete="off" placeholder="prfe=…" />
+
+    <h2>Redirect mechanism</h2>
+    <fieldset>
+      <label>
+        <input type="checkbox" id="useFallback" />
+        Use the compatibility redirect
+      </label>
+    </fieldset>
+    <p class="hint">
+      Slower, with a brief flash of the origin engine. Turn this on only if
+      redirects have stopped working after a Safari update.
+    </p>
+
+    <div class="row">
+      <button id="save" type="button">Save</button>
+      <span id="status" role="status">Saved</span>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

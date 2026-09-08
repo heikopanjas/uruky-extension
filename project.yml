@@ -1,0 +1,120 @@
+name: StartpageForSafari
+
+options:
+  bundleIdPrefix: com.panjas
+  createIntermediateGroups: true
+  minimumXcodeGenVersion: "2.38.0"
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "1.2.3"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: "8J2G689FCZ"
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+
+  # ---------------------------------------------------------------------------
+  # Container app. On macOS it is a small window explaining how to enable the
+  # extension; on iOS it is the same, minus the "open Safari settings" button
+  # (there is no equivalent API on iOS -- the user goes through Settings.app).
+  # ---------------------------------------------------------------------------
+  StartpageForSafari:
+    type: application
+    platform: auto
+    supportedDestinations: [macOS, iOS]
+    sources:
+      - path: App
+    settings:
+      base:
+        # Set explicitly: options.deploymentTarget is currently ignored for
+        # targets using supportedDestinations (XcodeGen issue #1577).
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        PRODUCT_BUNDLE_IDENTIFIER: com.panjas.StartpageForSafari
+        PRODUCT_NAME: Startpage for Safari
+        ENABLE_HARDENED_RUNTIME: YES
+        # No Info.plist checked in for the App target, unlike Extension: let
+        # Xcode synthesize one from the INFOPLIST_KEY_* settings below.
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Startpage
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        # One entitlements file per platform: app-sandbox is macOS-only.
+        CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: App/macOS.entitlements
+        CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]: App/iOS.entitlements
+        CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]: App/iOS.entitlements
+    dependencies:
+      - target: Extension
+        embed: true
+        codeSign: true
+
+  # ---------------------------------------------------------------------------
+  # The Safari web extension itself. Everything under Resources/ is the actual
+  # WebExtension; the Swift file is only the required principal class.
+  # ---------------------------------------------------------------------------
+  Extension:
+    type: app-extension
+    platform: auto
+    supportedDestinations: [macOS, iOS]
+    sources:
+      - path: Extension/SafariWebExtensionHandler.swift
+
+      # Top-level web resources are plain file references, so they land at the
+      # root of the appex bundle -- which is where Safari looks for manifest.json.
+      - path: Extension/Resources/manifest.json
+        buildPhase: resources
+      - path: Extension/Resources/rules.json
+        buildPhase: resources
+      - path: Extension/Resources/background.js
+        buildPhase: resources
+      - path: Extension/Resources/options.html
+        buildPhase: resources
+      - path: Extension/Resources/options.js
+        buildPhase: resources
+
+      # Subdirectories MUST be folder references. A group would flatten them
+      # into the bundle root and _locales/en/messages.json would stop resolving.
+      - path: Extension/Resources/_locales
+        type: folder
+        buildPhase: resources
+      - path: Extension/Resources/images
+        type: folder
+        buildPhase: resources
+
+    settings:
+      base:
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        # Must be a prefix-extension of the container app's identifier, or
+        # Safari refuses to load the extension without a useful error.
+        PRODUCT_BUNDLE_IDENTIFIER: com.panjas.StartpageForSafari.Extension
+        PRODUCT_NAME: Startpage Extension
+        CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: Extension/macOS.entitlements
+        CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]: Extension/iOS.entitlements
+        CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]: Extension/iOS.entitlements
+    info:
+      path: Extension/Info.plist
+      properties:
+        CFBundleDisplayName: Startpage Extension
+        # XcodeGen otherwise hardcodes these to 1.0/1 instead of following
+        # MARKETING_VERSION/CURRENT_PROJECT_VERSION, so the appex's version
+        # drifts from the container app's on every bump.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
+
+schemes:
+  StartpageForSafari:
+    build:
+      targets:
+        StartpageForSafari: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "Startpage for Safari",
+    "description": "Name of the extension, shown in Safari's extension list."
+  },
+  "extensionDescription": {
+    "message": "Sends Safari searches to Startpage.",
+    "description": "Short description shown in Safari's extension list."
+  }
+}

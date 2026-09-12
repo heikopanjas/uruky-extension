@@ -26,9 +26,9 @@ struct ContentView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Startpage for Safari")
+            Text("Uruky for Safari")
                 .font(.title2.weight(.semibold))
-            Text("Sends Safari searches to Startpage.")
+            Text("Sends Safari searches to Uruky.")
                 .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)

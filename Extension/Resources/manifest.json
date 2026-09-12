@@ -33,7 +33,7 @@
     "*://*.bing.com/*",
     "*://*.ecosia.org/*",
     "*://*.search.yahoo.com/*",
-    "*://*.startpage.com/*"
+    "*://uruky.com/*"
   ],
 
   "declarative_net_request": {

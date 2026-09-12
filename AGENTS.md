@@ -1,6 +1,6 @@
 # Project Instructions for AI Coding Agents
 
-**Last updated:** 2026-09-08 (2)
+**Last updated:** 2026-09-12
 
 <!-- {preamble} -->
 
@@ -14,12 +14,12 @@ Run `/init-session` at the beginning of each new session, OR read this entire fi
 
 ## Mission Statement
 
-Startpage for Safari is a Safari Web Extension (macOS + iOS) that rewrites searches
-made through Safari's configured search engine so they go to Startpage.com instead.
-Safari has no API for adding a custom search engine, so the extension intercepts and
-redirects navigations from a single engine the user points Safari at (DuckDuckGo or
-Ecosia). See `README.md` for the full mechanism, the declarativeNetRequest vs.
-webNavigation redirect strategies, and known limitations.
+Uruky for Safari is a Safari Web Extension (macOS + iOS) that rewrites searches
+made through Safari's configured search engine so they go to Uruky (uruky.com)
+instead. Safari has no API for adding a custom search engine, so the extension
+intercepts and redirects navigations from a single engine the user points Safari
+at (DuckDuckGo or Ecosia). See `README.md` for the full mechanism, the
+declarativeNetRequest vs. webNavigation redirect strategies, and known limitations.
 
 ## Technology Stack
 
@@ -127,8 +127,8 @@ When initializing a session or analyzing the workspace, refer to instruction fil
 No automated test suite exists yet (no unit or integration tests, no test target
 in `project.yml`). Verify changes by running `./build.sh lint`, then
 `./build.sh build` / `./build.sh build-ios`, and by loading the extension in
-Safari to exercise the redirect manually. Test redirect changes against
-Startpage's bot detection early — see "Startpage specifics" in `README.md`.
+Safari to exercise the redirect manually. See "Uruky specifics" in `README.md`
+for what's known about the destination engine's behavior.
 
 ### Documentation
 

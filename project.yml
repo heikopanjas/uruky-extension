@@ -10,7 +10,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
-    MARKETING_VERSION: "1.2.4"
+    MARKETING_VERSION: "1.3.0"
     CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: "8J2G689FCZ"
     CODE_SIGN_STYLE: Automatic
@@ -35,12 +35,12 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         PRODUCT_BUNDLE_IDENTIFIER: com.panjas.StartpageForSafari
-        PRODUCT_NAME: Startpage for Safari
+        PRODUCT_NAME: Uruky for Safari
         ENABLE_HARDENED_RUNTIME: YES
         # No Info.plist checked in for the App target, unlike Extension: let
         # Xcode synthesize one from the INFOPLIST_KEY_* settings below.
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Startpage
+        INFOPLIST_KEY_CFBundleDisplayName: Uruky
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         # One entitlements file per platform: app-sandbox is macOS-only.
@@ -92,14 +92,14 @@ targets:
         # Must be a prefix-extension of the container app's identifier, or
         # Safari refuses to load the extension without a useful error.
         PRODUCT_BUNDLE_IDENTIFIER: com.panjas.StartpageForSafari.Extension
-        PRODUCT_NAME: Startpage Extension
+        PRODUCT_NAME: Uruky Extension
         CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: Extension/macOS.entitlements
         CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]: Extension/iOS.entitlements
         CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]: Extension/iOS.entitlements
     info:
       path: Extension/Info.plist
       properties:
-        CFBundleDisplayName: Startpage Extension
+        CFBundleDisplayName: Uruky Extension
         # XcodeGen otherwise hardcodes these to 1.0/1 instead of following
         # MARKETING_VERSION/CURRENT_PROJECT_VERSION, so the appex's version
         # drifts from the container app's on every bump.

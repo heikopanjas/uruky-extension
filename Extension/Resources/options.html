@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Startpage for Safari</title>
+    <title>Uruky for Safari</title>
     <style>
       :root { color-scheme: light dark; }
       body {
@@ -32,11 +32,11 @@
     </style>
   </head>
   <body>
-    <h1>Startpage for Safari</h1>
+    <h1>Uruky for Safari</h1>
     <p class="hint">
       Safari has no API for setting a custom search engine. This extension
       intercepts navigations to the engine Safari is configured to use and
-      rewrites them to Startpage. Some traffic still reaches the origin engine
+      rewrites them to Uruky. Some traffic still reaches the origin engine
       before the redirect fires, and Safari's address-bar suggestions cannot be
       intercepted at all.
     </p>
@@ -48,13 +48,13 @@
     </p>
     <fieldset id="engines"></fieldset>
 
-    <h2>Startpage preferences token</h2>
+    <h2>Uruky private search token</h2>
     <p class="hint">
-      Optional. Copy the <code>prfe</code> value from
-      startpage.com/do/settings to carry your Startpage settings on the query
-      string. Unlike the settings cookie, this survives Private Browsing.
+      Optional. Copy the <code>i</code> value from your Uruky private search
+      URL to carry your personalized search identity on the query string.
+      Unlike a settings cookie, this survives Private Browsing.
     </p>
-    <input type="text" id="prfe" spellcheck="false" autocomplete="off" placeholder="prfe=…" />
+    <input type="text" id="i" spellcheck="false" autocomplete="off" placeholder="i=…" />
 
     <h2>Redirect mechanism</h2>
     <fieldset>

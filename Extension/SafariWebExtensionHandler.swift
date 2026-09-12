@@ -8,7 +8,7 @@ import os.log
 /// The class still has to exist and be named in Info.plist under
 /// `NSExtensionPrincipalClass`, otherwise Safari will not load the extension.
 ///
-/// If you later add native messaging — say, to read a Startpage `prfe` token
+/// If you later add native messaging — say, to read a Uruky `i` token
 /// out of the container app's shared container — this is where the message
 /// handling goes.
 final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {

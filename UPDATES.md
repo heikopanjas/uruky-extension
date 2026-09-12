@@ -4,6 +4,37 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-09-12 (v1.3.0, switch destination engine to Uruky)
+
+- redirect destination changed from Startpage to Uruky
+  (`https://uruky.com/search?q=...`) across `rules.json`, `background.js`, and
+  `manifest.json`'s `host_permissions`
+- renamed the `prfe` setting to `i` (background.js, options.js, options.html)
+  to match Uruky's private-search query parameter; kept it a
+  `browser.storage.local`-only runtime setting, never written into
+  `rules.json`/`background.js`, so the user's personal `i` token never lands
+  in git history
+- rebranded user-visible strings project-wide: `messages.json`
+  (extensionName/extensionDescription), `options.html`, `App/ContentView.swift`,
+  `App/SetupInstructions.swift`, `project.yml`'s `PRODUCT_NAME`/
+  `CFBundleDisplayName` settings, and `Extension/Info.plist`; renamed
+  `App/StartpageApp.swift` to `App/UrukyApp.swift` (struct `StartpageApp` to
+  `UrukyApp`)
+- rewrote README.md's "Startpage specifics" section as "Uruky specifics":
+  documented the `i` token and noted no Uruky-specific bot-detection behavior
+  is known yet, unlike the previous Startpage integration
+- kept `PRODUCT_BUNDLE_IDENTIFIER` (`com.panjas.StartpageForSafari[.Extension]`),
+  the `project.yml` target/scheme names, and the generated `.xcodeproj`
+  filename unchanged, per user's explicit choice to scope the rebrand to
+  user-visible strings only
+- rationale: user asked to switch to Uruky as "more willing to cooperate" than
+  Startpage; flagged the private `i` token as credential-like before writing
+  any code, and the user confirmed keeping it out of committed files and
+  doing a full display-name rebrand
+- version bump: 1.2.4 to 1.3.0 (MINOR - destination engine changed and a
+  settings key renamed, but the extension's structure and public behavior
+  otherwise stayed backward compatible)
+
 ### 2026-09-08 (v1.2.4, connect GitHub remote)
 
 - user created the remote repo at

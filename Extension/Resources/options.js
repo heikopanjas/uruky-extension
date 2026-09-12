@@ -18,12 +18,12 @@ const DEFAULT_SETTINGS = {
     bing: true,
     yahoo: true,
   },
-  prfe: "",
+  i: "",
   useFallback: false,
 };
 
 const fieldset = document.getElementById("engines");
-const prfeField = document.getElementById("prfe");
+const iField = document.getElementById("i");
 const fallbackField = document.getElementById("useFallback");
 const status = document.getElementById("status");
 
@@ -45,7 +45,7 @@ function renderEngines(enabled) {
 async function restore() {
   const stored = await api.storage.local.get(DEFAULT_SETTINGS);
   renderEngines({ ...DEFAULT_SETTINGS.engines, ...(stored.engines ?? {}) });
-  prfeField.value = stored.prfe ?? "";
+  iField.value = stored.i ?? "";
   fallbackField.checked = Boolean(stored.useFallback);
 }
 
@@ -55,17 +55,17 @@ async function save() {
     engines[box.dataset.engine] = box.checked;
   }
 
-  // Accept a pasted "prfe=abc123" or a bare token, and strip an accidental
+  // Accept a pasted "i=abc123" or a bare token, and strip an accidental
   // leading "?" or "&".
-  const prfe = prfeField.value.trim().replace(/^[?&]?(?:prfe=)?/, "");
+  const i = iField.value.trim().replace(/^[?&]?(?:i=)?/, "");
 
   await api.storage.local.set({
     engines,
-    prfe,
+    i,
     useFallback: fallbackField.checked,
   });
 
-  prfeField.value = prfe;
+  iField.value = i;
   status.classList.add("visible");
   setTimeout(() => status.classList.remove("visible"), 1500);
 }

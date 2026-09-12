@@ -1,6 +1,6 @@
-# Startpage for Safari
+# Uruky for Safari
 
-A Safari web extension that routes searches to [Startpage](https://www.startpage.com),
+A Safari web extension that routes searches to [Uruky](https://uruky.com),
 built the same way the Kagi and Qwant extensions are, because Safari leaves no
 other option. Project structure is defined in `project.yml` and generated with
 [XcodeGen](https://github.com/yonaskolb/XcodeGen) — the `.xcodeproj` is not
@@ -29,7 +29,7 @@ engine — Kagi's, Qwant's, xSearch — works by the same mechanism:
 
 1. You type a query in the address bar.
 2. Safari sends it to whichever engine it is configured to use.
-3. The extension intercepts that navigation and rewrites it to Startpage.
+3. The extension intercepts that navigation and rewrites it to Uruky.
 
 Two consequences follow, and neither can be engineered away:
 
@@ -63,7 +63,7 @@ same toggle for the same reason. Users switch to it from the options page.
 
 Unlike the dNR path (a browser-level network redirect, no permission check on
 the destination), `tabs.update()` is extension JS navigating a tab directly,
-which requires host permission for the *target* URL. `startpage.com` is in
+which requires host permission for the *target* URL. `uruky.com` is in
 `host_permissions` for exactly this reason — remove it and the fallback starts
 silently failing to navigate.
 
@@ -72,36 +72,26 @@ silently failing to navigate.
 `regexFilter` uses an RE2-style engine: **no lookahead, no backreferences in
 the pattern**. That is why the "any preceding query parameters" case is written
 as `(?:.*&)?` rather than a negative lookahead. The captured group is still
-percent-encoded in the source URL, so it substitutes into Startpage's `query=`
+percent-encoded in the source URL, so it substitutes into Uruky's `q=`
 without re-encoding.
 
 `regexSubstitution` requires **Safari 17+**. Do not lower the deployment target
 below that.
 
-## Startpage specifics
+## Uruky specifics
 
-Startpage encodes user preferences in an opaque `prfe` token, obtainable from
-`startpage.com/do/settings`. The options page accepts it and appends it to the
-redirect target, which makes preferences survive Private Browsing where the
-settings cookie does not.
+Uruky's private search URL carries a personal `i` token
+(`uruky.com/search?q=...&i=...`), tied to the account it was issued to. The
+options page accepts it and appends it to the redirect target, which makes
+personalized search survive Private Browsing where a settings cookie does
+not. Treat this value like a credential: it is deliberately kept out of
+`rules.json`/`background.js` and stored only in `browser.storage.local`, so it
+is never committed to source control.
 
-**This is not theoretical — it happens, and it is not fixable from extension
-code.** Startpage's block page is `/sp/captcha-block`, and it carries a `bi=`
-parameter naming the network category it flagged — `iCloud+Private+Relay` for
-a Private Relay connection, `TELE` (the user's own ISP, Deutsche Telekom) with
-Private Relay off. Same search, same browser, same extension, different
-network label, same block. That rules out the redirect mechanism, referrers,
-cookies, and session state entirely: this is Startpage's server-side
-IP/network-reputation scoring, made against the network the request comes
-from, not against how the request was constructed. A manually-typed search
-into Startpage's own search box would hit the same wall.
-
-An earlier attempt made the fallback visit the homepage before searching, on
-the working theory that a missing session was the trigger — that was reverted
-once the `bi=` evidence ruled it out. There is currently no mitigation
-available for the actual cause: if Startpage flags the network you're on,
-you'll see `/sp/captcha-block` regardless of which engine you typed your
-search into or how it got redirected.
+No Uruky-specific bot-detection or block-page behavior is known yet (unlike
+the previous Startpage integration, which hit server-side network-reputation
+blocking documented in `UPDATES.md`'s history). Update this section if that
+changes.
 
 ## XcodeGen gotchas encoded in project.yml
 

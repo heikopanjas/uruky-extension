@@ -1,4 +1,4 @@
-// Startpage for Safari -- background service worker.
+// Uruky for Safari -- background service worker.
 //
 // Two redirect mechanisms live here:
 //
@@ -19,7 +19,7 @@ const api = globalThis.browser ?? globalThis.chrome;
 
 const STATIC_RULESET_ID = "default";
 const DYNAMIC_RULE_BASE = 1000;
-const STARTPAGE_ENDPOINT = "https://www.startpage.com/sp/search";
+const URUKY_ENDPOINT = "https://uruky.com/search";
 
 // Engine table. `regex` is used for declarativeNetRequest (RE2 flavour -- no
 // lookahead, no backreferences in the pattern itself). `host`/`path`/`param`
@@ -63,7 +63,7 @@ const ENGINES = {
 };
 
 // Google image/news/video searches carry tbm=; leave those alone rather than
-// flattening them into a plain web search on Startpage.
+// flattening them into a plain web search on Uruky.
 const GOOGLE_VERTICAL_EXCEPTION = {
   regex: "^https?://(?:www\\.)?google\\.[a-z.]+/search\\?(?:.*&)?tbm=",
 };
@@ -78,10 +78,10 @@ const DEFAULT_SETTINGS = {
     bing: true,
     yahoo: true,
   },
-  // Startpage encodes user preferences in an opaque `prfe` token, obtainable
-  // from startpage.com/do/settings. Carrying it on the query string makes
-  // settings survive Private Browsing, where the settings cookie does not.
-  prfe: "",
+  // Uruky's private search URL carries a personal `i` token. Carrying it on
+  // the query string makes personalized search survive Private Browsing,
+  // where a settings cookie would not.
+  i: "",
   // Set true to use the webNavigation fallback instead of dNR.
   useFallback: false,
 };
@@ -96,12 +96,10 @@ async function loadSettings() {
 }
 
 function targetTemplate(settings) {
-  const suffix = settings.prfe
-    ? `&prfe=${encodeURIComponent(settings.prfe)}`
-    : "";
+  const suffix = settings.i ? `&i=${encodeURIComponent(settings.i)}` : "";
   // \\1 is the dNR substitution backreference for the captured query, which is
   // still percent-encoded in the source URL -- so it drops straight in.
-  return `${STARTPAGE_ENDPOINT}?query=\\1${suffix}`;
+  return `${URUKY_ENDPOINT}?q=\\1${suffix}`;
 }
 
 function buildDynamicRules(settings) {
@@ -167,8 +165,8 @@ function extractQuery(settings, rawURL) {
   }
 
   if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-  // Never act on Startpage itself -- cheap insurance against a redirect loop.
-  if (url.hostname.endsWith("startpage.com")) return null;
+  // Never act on Uruky itself -- cheap insurance against a redirect loop.
+  if (url.hostname.endsWith("uruky.com")) return null;
 
   for (const [key, engine] of Object.entries(ENGINES)) {
     if (!settings.engines[key]) continue;
@@ -192,11 +190,9 @@ api.webNavigation.onBeforeNavigate.addListener(async (details) => {
   const query = extractQuery(settings, details.url);
   if (!query) return;
 
-  const suffix = settings.prfe
-    ? `&prfe=${encodeURIComponent(settings.prfe)}`
-    : "";
+  const suffix = settings.i ? `&i=${encodeURIComponent(settings.i)}` : "";
   await api.tabs.update(details.tabId, {
-    url: `${STARTPAGE_ENDPOINT}?query=${encodeURIComponent(query)}${suffix}`,
+    url: `${URUKY_ENDPOINT}?q=${encodeURIComponent(query)}${suffix}`,
   });
 });
 

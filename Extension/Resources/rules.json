@@ -14,7 +14,7 @@
     "priority": 1,
     "action": {
       "type": "redirect",
-      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+      "redirect": { "regexSubstitution": "https://uruky.com/search?q=\\1" }
     },
     "condition": {
       "regexFilter": "^https?://(?:www\\.)?google\\.[a-z.]+/search\\?(?:.*&)?q=([^&]*)",
@@ -26,7 +26,7 @@
     "priority": 1,
     "action": {
       "type": "redirect",
-      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+      "redirect": { "regexSubstitution": "https://uruky.com/search?q=\\1" }
     },
     "condition": {
       "regexFilter": "^https?://(?:www\\.)?duckduckgo\\.com/(?:html/)?\\?(?:.*&)?q=([^&]*)",
@@ -38,7 +38,7 @@
     "priority": 1,
     "action": {
       "type": "redirect",
-      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+      "redirect": { "regexSubstitution": "https://uruky.com/search?q=\\1" }
     },
     "condition": {
       "regexFilter": "^https?://(?:www\\.)?ecosia\\.org/search\\?(?:.*&)?q=([^&]*)",
@@ -50,7 +50,7 @@
     "priority": 1,
     "action": {
       "type": "redirect",
-      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+      "redirect": { "regexSubstitution": "https://uruky.com/search?q=\\1" }
     },
     "condition": {
       "regexFilter": "^https?://(?:www\\.)?bing\\.com/search\\?(?:.*&)?q=([^&]*)",
@@ -62,7 +62,7 @@
     "priority": 1,
     "action": {
       "type": "redirect",
-      "redirect": { "regexSubstitution": "https://www.startpage.com/sp/search?query=\\1" }
+      "redirect": { "regexSubstitution": "https://uruky.com/search?q=\\1" }
     },
     "condition": {
       "regexFilter": "^https?://[a-z]+\\.search\\.yahoo\\.com/search\\?(?:.*&)?p=([^&]*)",

@@ -4,6 +4,50 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-09-12 (v1.3.3, add a real app icon, fix macOS squircle shape)
+
+- designed the container app's first real icon: a white calligraphic capital
+  "U" (Snell Roundhand Black) on a navy gradient, per user's direction; the
+  app previously had no `AppIcon` asset catalog at all
+- iOS and macOS need different art, not just different sizes. iOS auto-masks
+  a full-bleed opaque square (`icon-ios-1024.png`); macOS does not auto-mask
+  third-party app icons (confirmed on this project's actual host, macOS 15.8
+  Sequoia -- Xcode here is 26.3, well ahead of the host OS, which is what
+  made this easy to get wrong initially). The first version assumed macOS
+  auto-masked too and shipped a full-bleed square, which the user caught: it
+  rendered as a hard-cornered square in the Dock, visibly wrong next to
+  every other app's properly shaped icon
+- fix: the macOS slots (`icon-mac-*.png`, 16 through 512 at 1x/2x) are the
+  same gradient+letter content clipped to a superellipse (n=5) silhouette
+  approximating Apple's continuous-corner squircle (~824x824 tile centered
+  in the 1024x1024 canvas, per Apple's icon template), with a soft offset
+  drop shadow composited behind it
+- along the way, hit and worked around an ImageMagick quirk worth recording:
+  compositing a monochrome (shadow) layer onto a color layer silently
+  coerced the *entire* output to grayscale, destroying the navy gradient,
+  unless the monochrome layer is written with `-define png:color-type=6`
+  first to force genuine RGBA instead of an auto-detected grayscale PNG
+- added `App/Assets.xcassets/AppIcon.appiconset` and
+  `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` on the App target in
+  `project.yml`; the existing `sources: [App]` entry already covers the new
+  asset catalog recursively, no sources change needed
+- kept the editable SVG source at `design/app-icon.svg` (new top-level
+  folder), and wrote `design/generate-icons.sh` to regenerate every icon
+  size for both platforms from it plus the procedurally generated squircle
+  mask/shadow, rather than leaving the fix as ad-hoc scratch commands;
+  re-ran it from a clean slate to confirm the script itself produces the fix
+- verified via `assetutil -I` on the compiled `Assets.car` that all 10 `mac`
+  idiom renditions report `Opaque: False` (the first version incorrectly
+  showed `Opaque: True` for all of them -- the tell that something was
+  wrong) and via `actool`'s build output that neither platform produces
+  icon-related warnings; rebuilt, reinstalled to `/Applications`, and
+  cleared the Finder/Dock icon caches so the fix is actually visible
+- left `Extension/Resources/images/icon-*.png` (the Safari toolbar/extension-
+  list icons) untouched -- user asked for "an icon for app", scoped to the
+  container app
+- version bump: 1.3.1 to 1.3.3 (PATCH - new resource/branding asset plus a
+  same-day fix to it, no change to extension behavior)
+
 ### 2026-09-12 (v1.3.1, add install/install-ios build.sh commands)
 
 - added `./build.sh install` (Release build, copied to `/Applications`,

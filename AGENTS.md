@@ -1,6 +1,6 @@
 # Project Instructions for AI Coding Agents
 
-**Last updated:** 2026-09-12 (2)
+**Last updated:** 2026-09-12 (4)
 
 <!-- {preamble} -->
 
@@ -117,6 +117,14 @@ When initializing a session or analyzing the workspace, refer to instruction fil
 - All `xcodebuild` invocations in `build.sh` pass `DEVELOPMENT_TEAM=8J2G689FCZ`
   and `-allowProvisioningUpdates` explicitly, so signing doesn't depend on
   whichever team Xcode's automatic signing happens to pick locally
+- The container app's icon lives in `App/Assets.xcassets/AppIcon.appiconset`;
+  its editable SVG source and regeneration steps are in README.md's "App
+  icon" section. Edit `design/app-icon.svg`, not the PNGs, then run
+  `./design/generate-icons.sh` to regenerate all sizes for both platforms
+- macOS does **not** auto-mask app icons the way iOS does (confirmed on this
+  project's macOS 15 host) — the rounded-square shape and its shadow must be
+  baked into the macOS PNGs themselves, or the icon renders as a hard-cornered
+  square in the Dock. Don't reuse the flat, full-bleed iOS icon art for macOS
 - When adding a search engine, keep `manifest.json` (`host_permissions`),
   `rules.json` (static redirect rule), and `background.js` (`ENGINES` entry) in
   sync — see "Adding a search engine" in `README.md`

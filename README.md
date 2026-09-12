@@ -154,4 +154,41 @@ list covers the common European ones. Add yours if searches from
   would do it.
 - No native messaging. `SafariWebExtensionHandler` is a stub that exists only
   because Info.plist requires a principal class.
-- Icons in `Extension/Resources/images/` are generated placeholders.
+- Icons in `Extension/Resources/images/` (the Safari toolbar/extension-list
+  icons) are still generated placeholders. The container app's icon is not —
+  see below.
+
+## App icon
+
+The container app's icon (`App/Assets.xcassets/AppIcon.appiconset`) is a
+white calligraphic "U" (Snell Roundhand Black) on a navy gradient.
+
+**iOS and macOS need different art, not just different sizes.** iOS/iPadOS
+auto-masks whatever full-bleed square you give it, so that slot
+(`icon-ios-1024.png`) is a single opaque 1024×1024 image with no alpha
+channel. macOS does **not** auto-mask third-party app icons (confirmed on
+this project's actual host, macOS 15 Sequoia, after shipping a full-bleed
+square that showed up in the Dock as a hard-cornered square next to every
+other app's properly shaped icon) — the rounded-square "squircle" shape and
+its drop shadow have to be baked into the art yourself, per Apple's icon
+template (~824×824 tile centered in the 1024×1024 canvas, ~100px margin).
+The macOS slots (`icon-mac-*.png`, 16 through 512 at 1x/2x) are that same
+content, procedurally masked to a superellipse silhouette with a soft
+offset shadow composited behind it — see `design/generate-icons.sh`.
+
+`project.yml`'s `ASSETCATALOG_COMPILER_APPICON_NAME` points the App target
+at the asset catalog.
+
+The editable source is `design/app-icon.svg` (just the gradient + letter,
+full-bleed, no shape or shadow — that part is generated). After editing it,
+regenerate every icon size for both platforms with:
+
+```sh
+./design/generate-icons.sh
+```
+
+Requires `qlmanage` (macOS Quick Look, used to rasterize the SVG — WebKit
+has access to system fonts like Snell Roundhand, unlike ImageMagick's own
+SVG delegate) and `magick` (ImageMagick, for the masking/shadow/resizing
+pipeline). The script has more detail on why the shadow layer specifically
+needs `-define png:color-type=6` before compositing.

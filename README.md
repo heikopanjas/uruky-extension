@@ -14,12 +14,23 @@ brew install xcodegen
 ./build.sh open          # generate the project and open it in Xcode
 ```
 
-Set `DEVELOPMENT_TEAM` in `project.yml` before archiving. For local development
-you can leave it blank and let Xcode sign to run locally.
+`project.yml` sets `DEVELOPMENT_TEAM` to a real team ID already, and every
+`xcodebuild` invocation in `build.sh` passes it explicitly with
+`-allowProvisioningUpdates`, so builds don't depend on whichever identity
+Xcode's automatic signing happens to pick locally.
 
-After building and running once, enable the extension in Safari's settings,
-then set Safari's own search engine to DuckDuckGo or Ecosia and enable only
-that engine in the extension's options page.
+### Installing for daily use, without opening Xcode
+
+```sh
+./build.sh install              # Release build -> /Applications, then launched
+./build.sh install-ios           # Release build -> a paired physical device
+./build.sh install-ios "iPhone"  # ...or a named one, if more than one is paired
+```
+
+After building and running once (via `install`/`install-ios` above, or by
+running from Xcode), enable the extension in Safari's settings, then set
+Safari's own search engine to DuckDuckGo or Ecosia and enable only that
+engine in the extension's options page.
 
 ## The fundamental limitation
 

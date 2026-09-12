@@ -1,6 +1,6 @@
 # Project Instructions for AI Coding Agents
 
-**Last updated:** 2026-09-12
+**Last updated:** 2026-09-12 (2)
 
 <!-- {preamble} -->
 
@@ -105,9 +105,18 @@ When initializing a session or analyzing the workspace, refer to instruction fil
 - `./build.sh open` / `./build.sh generate` — regenerate `StartpageForSafari.xcodeproj`
   from `project.yml` after any target/source/settings change; the `.xcodeproj` itself
   is not committed
-- `./build.sh build [debug|release]` / `./build.sh build-ios [debug|release]` —
-  build the container app + embedded extension from the command line (default:
-  debug)
+- `./build.sh build [debug|release]` — build the container app + embedded
+  extension for macOS from the command line (default: debug)
+- `./build.sh build-ios [debug|release]` — build for the iOS Simulator
+  (generic destination; no need for a specific runtime to be installed)
+- `./build.sh install` — Release build, installed to `/Applications`, then
+  launched. This is the personal-daily-use path: no Xcode UI needed
+- `./build.sh install-ios [device name]` — Release build installed to a
+  paired physical iOS/iPadOS device via `xcrun devicectl` (name only needed
+  when more than one device is paired)
+- All `xcodebuild` invocations in `build.sh` pass `DEVELOPMENT_TEAM=8J2G689FCZ`
+  and `-allowProvisioningUpdates` explicitly, so signing doesn't depend on
+  whichever team Xcode's automatic signing happens to pick locally
 - When adding a search engine, keep `manifest.json` (`host_permissions`),
   `rules.json` (static redirect rule), and `background.js` (`ENGINES` entry) in
   sync — see "Adding a search engine" in `README.md`

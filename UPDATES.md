@@ -4,6 +4,36 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-09-12 (v1.3.1, add install/install-ios build.sh commands)
+
+- added `./build.sh install` (Release build, copied to `/Applications`,
+  launched) and `./build.sh install-ios [device name]` (Release build
+  installed and launched on a paired physical device via `xcrun devicectl`),
+  so the app can be built and deployed for personal daily use entirely from
+  the command line, without opening Xcode
+- pinned `DEVELOPMENT_TEAM=8J2G689FCZ` and added `-allowProvisioningUpdates`
+  on every `xcodebuild` invocation in `build.sh` (`build`, `build-ios`,
+  `install`, `install-ios`), after finding the local Debug build was signing
+  with a different local identity than `project.yml`'s declared team even
+  though the resulting `TeamIdentifier` matched -- making the intended team
+  explicit at the command line removes any ambiguity
+- fixed `build-ios`'s hardcoded `iPhone 16` simulator destination, which no
+  longer exists in the current Xcode's simulator list and made the command
+  fail outright; switched to the generic `platform=iOS Simulator` destination,
+  which builds without depending on any specific runtime being installed
+- `find_ios_device` (new helper in `build.sh`) resolves a paired device by
+  name via `xcrun devicectl list devices --json-output`, using
+  `hardwareProperties.udid` for the `xcodebuild -destination id=...` value
+  (not `devicectl`'s own `identifier`, which is a different ID space) and the
+  top-level `identifier` for the `devicectl device install/launch` calls
+- verified end-to-end: `install` produced a correctly-signed
+  (`TeamIdentifier=8J2G689FCZ`) app in `/Applications`; `install-ios` built,
+  installed, and launched on a paired device
+- rationale: user asked for a command-line release path for both platforms
+  for their own daily use, and confirmed `8J2G689FCZ` as the correct team ID
+- version bump: 1.3.0 to 1.3.1 (PATCH - build tooling/deployment procedure
+  only, no change to the extension's own behavior)
+
 ### 2026-09-12 (v1.3.0, switch destination engine to Uruky)
 
 - redirect destination changed from Startpage to Uruky

@@ -5,6 +5,10 @@ cd "$(dirname "$0")"
 XCODEPROJ="StartpageForSafari.xcodeproj"
 SCHEME="StartpageForSafari"
 BUILD_DIR=".build"
+DEVELOPMENT_TEAM="8J2G689FCZ"
+APP_NAME="Uruky for Safari"
+APP_BUNDLE_ID="com.panjas.StartpageForSafari"
+INSTALLED_APP="/Applications/${APP_NAME}.app"
 
 usage() {
 	cat <<EOF
@@ -17,6 +21,11 @@ Commands:
   build [debug|release]   Build the macOS app + embedded extension (default: debug)
   build-ios [debug|release]
                           Build for iOS Simulator (default: debug)
+  install                 Build a Release macOS app, install it to /Applications, and open it
+  install-ios [device name]
+                          Build a Release app for a paired physical iOS/iPadOS
+                          device and install it. Omit the device name when
+                          exactly one device is paired.
   clean                   Remove the generated project and build artifacts
 EOF
 }
@@ -67,17 +76,118 @@ build() {
 	xcodebuild -project "$XCODEPROJ" -scheme "$SCHEME" \
 		-configuration "$config" \
 		-derivedDataPath "$BUILD_DIR" \
-		-destination 'platform=macOS' build
+		-destination 'platform=macOS' \
+		-allowProvisioningUpdates \
+		DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" build
 }
 
 build_ios() {
 	ensure_project
 	local config
 	config=$(configuration_for "${1:-debug}")
+	# Generic destination: builds against the iOS Simulator SDK without
+	# requiring a specific runtime/device pair to exist, since the installed
+	# simulator lineup changes with every Xcode version.
 	xcodebuild -project "$XCODEPROJ" -scheme "$SCHEME" \
 		-configuration "$config" \
 		-derivedDataPath "$BUILD_DIR" \
-		-destination 'platform=iOS Simulator,name=iPhone 16' build
+		-destination 'generic/platform=iOS Simulator' \
+		-allowProvisioningUpdates \
+		DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" build
+}
+
+# Locates a paired physical iOS/iPadOS device by name (or the only one paired,
+# if the name is omitted). Prints "<xcodebuild-udid>\t<devicectl-identifier>\t<name>"
+# on success. `devicectl`'s own identifier does not match the udid xcodebuild
+# expects in `-destination id=...` -- hardwareProperties.udid is the one that does.
+find_ios_device() {
+	local wanted="${1:-}"
+	local list_json
+	list_json=$(mktemp)
+	trap 'rm -f "$list_json"' RETURN
+
+	xcrun devicectl list devices --json-output "$list_json" >/dev/null
+
+	python3 - "$list_json" "$wanted" <<'PY'
+import json
+import sys
+
+path, wanted = sys.argv[1], sys.argv[2]
+devices = json.load(open(path))["result"]["devices"]
+paired = [
+    d for d in devices
+    if d["connectionProperties"]["pairingState"] == "paired"
+    and d["hardwareProperties"]["reality"] == "physical"
+]
+
+if wanted:
+    matches = [d for d in paired if d["deviceProperties"]["name"].lower() == wanted.lower()]
+else:
+    matches = paired
+
+if len(matches) == 1:
+    d = matches[0]
+    print(f"{d['hardwareProperties']['udid']}\t{d['identifier']}\t{d['deviceProperties']['name']}")
+elif not paired:
+    sys.exit("error: no paired iOS/iPadOS devices found -- pair one in Xcode first")
+elif wanted:
+    sys.exit(f"error: no paired device named '{wanted}' (available: "
+              f"{', '.join(d['deviceProperties']['name'] for d in paired)})")
+else:
+    sys.exit("error: multiple paired devices, specify one: "
+              f"{', '.join(d['deviceProperties']['name'] for d in paired)}")
+PY
+}
+
+install() {
+	ensure_project
+	local config
+	config=$(configuration_for "release")
+	xcodebuild -project "$XCODEPROJ" -scheme "$SCHEME" \
+		-configuration "$config" \
+		-derivedDataPath "$BUILD_DIR" \
+		-destination 'platform=macOS' \
+		-allowProvisioningUpdates \
+		DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" build
+
+	local built_app="$BUILD_DIR/Products/$config/${APP_NAME}.app"
+	[[ -d "$built_app" ]] || {
+		echo "error: build did not produce $built_app" >&2
+		exit 1
+	}
+
+	rm -rf "$INSTALLED_APP"
+	cp -R "$built_app" "$INSTALLED_APP"
+	open "$INSTALLED_APP"
+}
+
+install_ios() {
+	ensure_project
+	local device
+	device=$(find_ios_device "${1:-}") || {
+		echo "$device" >&2
+		exit 1
+	}
+	local xcode_udid devicectl_id device_name
+	IFS=$'\t' read -r xcode_udid devicectl_id device_name <<<"$device"
+	echo "Installing to $device_name..."
+
+	local config="Release"
+	xcodebuild -project "$XCODEPROJ" -scheme "$SCHEME" \
+		-configuration "$config" \
+		-derivedDataPath "$BUILD_DIR" \
+		-destination "id=$xcode_udid" \
+		-allowProvisioningUpdates \
+		DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" build
+
+	local built_app="$BUILD_DIR/Products/${config}-iphoneos/${APP_NAME}.app"
+	[[ -d "$built_app" ]] || {
+		echo "error: build did not produce $built_app" >&2
+		exit 1
+	}
+
+	xcrun devicectl device install app --device "$devicectl_id" "$built_app"
+	xcrun devicectl device process launch --device "$devicectl_id" "$APP_BUNDLE_ID"
 }
 
 clean() {
@@ -90,6 +200,8 @@ open) open_project ;;
 lint) lint ;;
 build) build "${2:-debug}" ;;
 build-ios) build_ios "${2:-debug}" ;;
+install) install ;;
+install-ios) install_ios "${2:-}" ;;
 clean) clean ;;
 *)
 	usage

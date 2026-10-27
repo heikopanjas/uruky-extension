@@ -4,6 +4,39 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-10-27 (v2.0.1, 12:25 add github actions build and release workflows)
+
+- added `build.yml` (pushes and pull requests to `develop` and `feature/**`:
+  checks plus a developer id signed macos build uploaded as an artifact) and
+  `release.yml` (pull requests to `main` build and notarize; the push after
+  merging also publishes a github release `v<version>`), modeled on the
+  senor-particle project per user's direction, using the secrets the user
+  added under the same names
+- differences from senor-particle, and why: the project is generated, so
+  every job installs xcodegen and runs it; no sparkle, appcast or pages; no
+  package dependencies; no unit tests exist, so the check jobs are
+  swift-format lint, the json lint and an unsigned ios simulator build
+  (this project is multiplatform); no arm64-only assertion, the app is
+  universal; instead the build verifies that app and appex are developer
+  id signed with the hardened runtime, catching a notarization blocker on
+  every push rather than at release
+- deduplicated what senor-particle repeats across its two workflows: shared
+  checks are a reusable workflow (`checks.yml`), and setup, signing/archive/
+  export and packaging are composite actions in `.github/actions/`, per the
+  project's dry rule
+- verified locally: manual developer id archive without provisioning
+  profiles succeeds for the app and appex, export and strict codesign pass,
+  the run-number build override reaches the appex; unsigned ios simulator
+  build passes; packaging script tested with relative and absolute paths;
+  actionlint and shellcheck (including the composite action scripts) clean
+- packaging zips with `ditto --sequesterRsrc` from the package directory
+  instead of senor-particle's `cd` plus `$(pwd)` prefix, which broke for
+  absolute paths and left `._` files at the zip root
+- reformatted `App/ContentView.swift` with swift-format (layout of one
+  multi-line string only, text unchanged) so the strict lint passes
+- version bump: 2.0.0 to 2.0.1 (PATCH - ci tooling and formatting, no
+  behavior change)
+
 ### 2026-10-27 (v2.0.0, 12:30 remove the old startpage name)
 
 - per user's request, removed every remaining trace of the project's former

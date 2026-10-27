@@ -63,6 +63,37 @@ Notarization requires the hardened runtime on every executable,
 which is why `ENABLE_HARDENED_RUNTIME` sits in `project.yml`'s base settings
 rather than on the App target only: the embedded `.appex` needs it too.
 
+### GitHub Actions
+
+Both workflows run on `macos-26` (Xcode 26, needed for the `.icon`), install
+XcodeGen with Homebrew and generate the project first, and share their steps
+through `.github/workflows/checks.yml` (a reusable workflow) and the
+composite actions in `.github/actions/`:
+
+- **`checks.yml`**: `swift-format lint --strict` over `App` and `Extension`,
+  `./build.sh lint` for the extension JSON, and an unsigned iOS Simulator
+  build as a compile check (iOS is installed locally, not shipped from CI).
+- **`build.yml`**: on pushes and pull requests to `develop` and
+  `feature/**`, runs the checks, then archives a Developer ID signed macOS
+  app (`build-app` action: imports the certificate into a temporary
+  keychain, archives with manual signing, exports, and verifies that the app
+  and the appex are Developer ID signed with the hardened runtime) and
+  uploads a zip with the app, `CHANGELOG.md` and `BILL_OF_MATERIALS.md`
+  (`package-app` action).
+- **`release.yml`**: on pull requests to `main` it runs the same build plus
+  notarization with the App Store Connect API key, then staples and checks
+  Gatekeeper acceptance; on the push after merging it also publishes a GitHub
+  release tagged `v<MARKETING_VERSION>` with that zip. The release fails if
+  the tag already exists on another commit, so bump the version before each
+  release merge.
+
+The build number is the workflow run number (`CURRENT_PROJECT_VERSION`).
+Repository secrets: `APPLE_CERTIFICATE_P12_BASE64`,
+`APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (both workflows) and
+`APPSTORE_CONNECT_KEY_ID`, `APPSTORE_CONNECT_ISSUER_ID`,
+`APPSTORE_CONNECT_KEY_P8_BASE64` (release only), the same names as in the
+team's other projects.
+
 ## The fundamental limitation
 
 Safari has no API for adding a custom search engine, and has not had one in

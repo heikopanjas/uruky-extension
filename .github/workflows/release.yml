@@ -1,0 +1,173 @@
+name: Release
+
+# Pull requests into main validate the release build (including
+# notarization); the push after merging publishes it as a GitHub release
+# tagged v<MARKETING_VERSION>.
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+
+  release:
+    name: Build And Notarize Release App
+    needs:
+      - checks
+    runs-on: macos-26
+    timeout-minutes: 90
+    outputs:
+      app_version: ${{ steps.build.outputs.app-version }}
+      release_name: ${{ steps.release_name.outputs.release_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Build Signed App
+        id: build
+        uses: ./.github/actions/build-app
+        with:
+          certificate-p12-base64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          certificate-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          signing-identity: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+
+      - name: Validate Release Version
+        id: release_name
+        run: |
+          set -euo pipefail
+          RELEASE_TAG="v${APP_VERSION}"
+          if git rev-parse --verify --quiet "refs/tags/${RELEASE_TAG}" >/dev/null; then
+            TAG_COMMIT="$(git rev-list -n 1 "$RELEASE_TAG")"
+            if [[ "$TAG_COMMIT" != "$GITHUB_SHA" ]]; then
+              echo "Release tag $RELEASE_TAG belongs to $TAG_COMMIT; increment MARKETING_VERSION" >&2
+              exit 1
+            fi
+            echo "Release tag $RELEASE_TAG already identifies this commit; continuing retry"
+          fi
+          echo "release_name=uruky-for-safari-v${APP_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Submit For Notarization
+        env:
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          APPSTORE_CONNECT_KEY_P8_BASE64: ${{ secrets.APPSTORE_CONNECT_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          : "${APPSTORE_CONNECT_KEY_ID:?Missing APPSTORE_CONNECT_KEY_ID secret}"
+          : "${APPSTORE_CONNECT_ISSUER_ID:?Missing APPSTORE_CONNECT_ISSUER_ID secret}"
+          : "${APPSTORE_CONNECT_KEY_P8_BASE64:?Missing APPSTORE_CONNECT_KEY_P8_BASE64 secret}"
+          KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+          NOTARY_ZIP="$BUILD_DIR/Uruky-for-Safari-notarization.zip"
+          NOTARIZATION_RESULT="$RUNNER_TEMP/notarization-result.json"
+          printf '%s' "$APPSTORE_CONNECT_KEY_P8_BASE64" | base64 -D > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          ditto -c -k --keepParent "$APP_PATH" "$NOTARY_ZIP"
+
+          set +e
+          xcrun notarytool submit "$NOTARY_ZIP" \
+            --key "$KEY_PATH" \
+            --key-id "$APPSTORE_CONNECT_KEY_ID" \
+            --issuer "$APPSTORE_CONNECT_ISSUER_ID" \
+            --wait \
+            --timeout 30m \
+            --output-format json > "$NOTARIZATION_RESULT"
+          set -e
+
+          cat "$NOTARIZATION_RESULT"
+          read -r SUBMISSION_ID NOTARIZATION_STATUS < <(python3 -c 'import json, sys
+          r = json.load(open(sys.argv[1]))
+          print(r.get("id", "-"), r.get("status", "-"))' "$NOTARIZATION_RESULT" 2>/dev/null || echo "- -")
+          if [[ "$NOTARIZATION_STATUS" != "Accepted" ]]; then
+            echo "Notarization failed (status: $NOTARIZATION_STATUS)" >&2
+            if [[ "$SUBMISSION_ID" != "-" ]]; then
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --key "$KEY_PATH" \
+                --key-id "$APPSTORE_CONNECT_KEY_ID" \
+                --issuer "$APPSTORE_CONNECT_ISSUER_ID" || true
+            fi
+            exit 1
+          fi
+
+      - name: Staple And Verify Notarized App
+        run: |
+          set -euo pipefail
+          xcrun stapler staple "$APP_PATH"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          spctl --assess --type execute --verbose=2 "$APP_PATH"
+
+      - name: Package App
+        uses: ./.github/actions/package-app
+        with:
+          artifact-name: ${{ steps.release_name.outputs.release_name }}
+
+      - name: Upload App Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.release_name.outputs.release_name }}
+          path: ${{ env.ARTIFACT_ZIP }}
+          if-no-files-found: error
+
+      - name: Clean Up Signing Material
+        if: always()
+        run: |
+          set -euo pipefail
+          rm -f "$RUNNER_TEMP/developer-id-application.p12" "$RUNNER_TEMP/AuthKey.p8"
+          if [[ -n "${KEYCHAIN_PATH:-}" && -f "$KEYCHAIN_PATH" ]]; then
+            security delete-keychain "$KEYCHAIN_PATH"
+          fi
+
+  publish:
+    name: Publish GitHub Release
+    if: github.event_name == 'push'
+    needs:
+      - release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Notarized App Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.release.outputs.release_name }}
+          path: dist
+
+      - name: Publish GitHub Release
+        env:
+          APP_VERSION: ${{ needs.release.outputs.app_version }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_NAME: ${{ needs.release.outputs.release_name }}
+        run: |
+          set -euo pipefail
+          RELEASE_TAG="v${APP_VERSION}"
+          ARTIFACT_PATH="dist/${RELEASE_NAME}.zip"
+          if [[ ! -f "$ARTIFACT_PATH" ]]; then
+            echo "Release artifact not found at $ARTIFACT_PATH" >&2
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            RELEASE_TARGET="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq .targetCommitish)"
+            if [[ "$RELEASE_TARGET" != "$GITHUB_SHA" ]]; then
+              echo "Release $RELEASE_TAG targets $RELEASE_TARGET instead of $GITHUB_SHA" >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" "$ARTIFACT_PATH" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$ARTIFACT_PATH" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Uruky for Safari ${RELEASE_TAG}" \
+              --generate-notes
+          fi

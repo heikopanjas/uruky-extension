@@ -1,0 +1,20 @@
+name: Set Up Project
+description: Show the Xcode version, install XcodeGen, and generate the Xcode project from project.yml
+
+runs:
+  using: composite
+  steps:
+    - name: Show Xcode Version
+      shell: bash
+      run: |
+        set -euo pipefail
+        xcodebuild -version
+        xcode-select -p
+
+    - name: Generate Xcode Project
+      shell: bash
+      run: |
+        set -euo pipefail
+        brew install xcodegen
+        xcodegen --version
+        xcodegen generate

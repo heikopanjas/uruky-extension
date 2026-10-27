@@ -1,6 +1,6 @@
 # Project Instructions for AI Coding Agents
 
-**Last updated:** 2026-10-27 (9)
+**Last updated:** 2026-10-27 (10)
 
 <!-- {preamble} -->
 
@@ -145,6 +145,17 @@ When initializing a session or analyzing the workspace, refer to instruction fil
 - The Safari extension icons (`Extension/Resources/images/icon-*.png`) are
   derived from the app icon: after changing `App/AppIcon.icon`, run
   `./design/generate-icons.sh` to regenerate them. Never edit the PNGs by hand
+- CI lives in `.github/`: `build.yml` (`develop`, `feature/**`) and
+  `release.yml` (pull requests and pushes to `main`; the push publishes the
+  GitHub release `v<MARKETING_VERSION>`), sharing `workflows/checks.yml` and
+  the composite actions `setup-project`, `build-app`, `package-app`. Change
+  shared steps there, never by duplicating them into a workflow. README.md's
+  "GitHub Actions" section lists the secrets and the flow
+- Swift sources must pass `xcrun swift-format lint --strict --recursive App
+  Extension` (enforced in CI); run `xcrun swift-format format -i` on edited
+  files before committing
+- Bump `MARKETING_VERSION` before merging into `main`: a release whose tag
+  already exists on another commit fails
 - When adding a search engine, keep `manifest.json` (`host_permissions`),
   `rules.json` (static redirect rule), and `background.js` (`ENGINES` entry) in
   sync — see "Adding a search engine" in `README.md`
@@ -162,7 +173,7 @@ When initializing a session or analyzing the workspace, refer to instruction fil
 ### Testing
 
 No automated test suite exists yet (no unit or integration tests, no test target
-in `project.yml`). Verify changes by running `./build.sh lint`, then
+in `project.yml`). Verify changes by running `./build.sh lint` and the swift-format lint, then
 `./build.sh build` / `./build.sh build-ios`, and by loading the extension in
 Safari to exercise the redirect manually. See "Uruky specifics" in `README.md`
 for what's known about the destination engine's behavior.

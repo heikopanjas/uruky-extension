@@ -1,0 +1,80 @@
+name: Package App
+description: >
+  Write CHANGELOG.md and BILL_OF_MATERIALS.md for the app built by the
+  build-app action and zip them together with the app. Exports ARTIFACT_ZIP
+  to the job environment.
+
+inputs:
+  artifact-name:
+    description: Base name of the zip, without extension
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Generate Changelog And Bill Of Materials
+      shell: bash
+      env:
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
+      run: |
+        set -euo pipefail
+        PACKAGE_DIR="$BUILD_DIR/package"
+        ARTIFACT_ZIP="$BUILD_DIR/$ARTIFACT_NAME.zip"
+        echo "ARTIFACT_ZIP=$ARTIFACT_ZIP" >> "$GITHUB_ENV"
+        rm -rf "$PACKAGE_DIR"
+        mkdir -p "$PACKAGE_DIR"
+
+        PREVIOUS_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+        {
+          echo "# Changelog"
+          echo
+          echo "- version: ${APP_VERSION}"
+          echo "- build: ${BUILD_NUMBER}"
+          echo "- commit: ${GITHUB_SHA}"
+          echo "- branch: ${GITHUB_REF_NAME}"
+          echo
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            echo "## Changes since ${PREVIOUS_TAG}"
+            git log --no-merges --pretty='- %s (%h)' "${PREVIOUS_TAG}..HEAD"
+          else
+            echo "## Changes"
+            git log --no-merges --pretty='- %s (%h)' HEAD
+          fi
+        } > "$PACKAGE_DIR/CHANGELOG.md"
+
+        INFO="$APP_PATH/Contents/Info.plist"
+        EXTENSION_INFO="$APP_PATH/Contents/PlugIns/Uruky Extension.appex/Contents/Info.plist"
+        {
+          echo "# Bill Of Materials"
+          echo
+          echo "- artifact: $(basename "$ARTIFACT_ZIP")"
+          echo "- included app: ${APP_NAME}.app"
+          echo "- included changelog: CHANGELOG.md"
+          echo "- included bill of materials: BILL_OF_MATERIALS.md"
+          echo "- bundle identifier: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO")"
+          echo "- extension bundle identifier: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXTENSION_INFO")"
+          echo "- bundle version: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO")"
+          echo "- bundle build: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO")"
+          echo "- executable architectures: $(lipo -archs "$APP_PATH/Contents/MacOS/$APP_NAME")"
+          echo "- source commit: ${GITHUB_SHA}"
+          echo "- source branch: ${GITHUB_REF_NAME}"
+          echo "- runner image: ${ImageOS:-unknown} ${ImageVersion:-}"
+          echo "- macos version: $(sw_vers -productVersion)"
+          echo "- xcode version: $(xcodebuild -version | tr '\n' ' ')"
+          echo "- swift version: $(swift --version 2>/dev/null | head -n 1)"
+          echo
+          echo "## Dependencies"
+          echo "- none (no package dependencies)"
+        } > "$PACKAGE_DIR/BILL_OF_MATERIALS.md"
+
+    - name: Zip App Artifact
+      shell: bash
+      run: |
+        set -euo pipefail
+        PACKAGE_DIR="$BUILD_DIR/package"
+        ditto "$APP_PATH" "$PACKAGE_DIR/$APP_NAME.app"
+        # Without --keepParent, ditto zips the directory's contents, so the
+        # app and both documents sit at the root of the zip; --sequesterRsrc
+        # keeps macOS metadata in __MACOSX/ instead of ._ files beside them.
+        ditto -c -k --sequesterRsrc "$PACKAGE_DIR" "$ARTIFACT_ZIP"
+        ls -lh "$ARTIFACT_ZIP"

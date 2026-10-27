@@ -130,10 +130,8 @@ not. Treat this value like a credential: it is deliberately kept out of
 `rules.json`/`background.js` and stored only in `browser.storage.local`, so it
 is never committed to source control.
 
-No Uruky-specific bot-detection or block-page behavior is known yet (unlike
-the previous Startpage integration, which hit server-side network-reputation
-blocking documented in `UPDATES.md`'s history). Update this section if that
-changes.
+No Uruky-specific bot-detection or block-page behavior is known yet. Update
+this section if that changes.
 
 ## XcodeGen gotchas encoded in project.yml
 
@@ -159,7 +157,7 @@ one entitlements setting. `CODE_SIGN_ENTITLEMENTS[sdk=macosx*]` and friends
 split it.
 
 Also note the extension's bundle identifier must be a prefix-extension of the
-container app's (`com.panjas.StartpageForSafari.Extension`). Get this wrong and
+container app's (`com.panjas.UrukyForSafari.Extension`). Get this wrong and
 Safari silently refuses to load the extension with no useful error.
 
 ## Adding a search engine

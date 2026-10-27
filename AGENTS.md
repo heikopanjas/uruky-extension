@@ -1,6 +1,6 @@
 # Project Instructions for AI Coding Agents
 
-**Last updated:** 2026-10-27 (8)
+**Last updated:** 2026-10-27 (9)
 
 <!-- {preamble} -->
 
@@ -30,8 +30,9 @@ declarativeNetRequest vs. webNavigation redirect strategies, and known limitatio
 - **Project generation:** [XcodeGen](https://github.com/yonaskolb/XcodeGen) reads
   `project.yml`; the `.xcodeproj` is generated, not committed. Run `./build.sh open`
   or `./build.sh generate`
-- **Version Control:** Git — `main` branch, remote at
-  https://github.com/heikopanjas/startpage-extension
+- **Version Control:** Git — work happens on `develop` (also the remote's
+  default branch; `main` exists too), remote at
+  https://github.com/heikopanjas/uruky-extension
 - **Toolchain:** Xcode 26+ is required: the app icon (`App/AppIcon.icon`) is an
   Icon Composer document, which older `actool` versions cannot compile
 - **Package Manager:** None — no npm/CocoaPods/SPM dependencies; the JS resources
@@ -104,7 +105,7 @@ When initializing a session or analyzing the workspace, refer to instruction fil
 
 - `./build.sh lint` — validate the JSON Safari will parse (`manifest.json`,
   `rules.json`, `_locales/en/messages.json`) before committing changes to those files
-- `./build.sh open` / `./build.sh generate` — regenerate `StartpageForSafari.xcodeproj`
+- `./build.sh open` / `./build.sh generate` — regenerate `UrukyForSafari.xcodeproj`
   from `project.yml` after any target/source/settings change; the `.xcodeproj` itself
   is not committed
 - `./build.sh build [debug|release]` — build the container app + embedded

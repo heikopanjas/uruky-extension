@@ -13,7 +13,7 @@ import os.log
 /// handling goes.
 final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     private static let log = Logger(
-        subsystem: "com.panjas.StartpageForSafari.Extension",
+        subsystem: "com.panjas.UrukyForSafari.Extension",
         category: "messaging"
     )
 

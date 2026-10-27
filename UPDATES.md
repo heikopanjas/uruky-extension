@@ -4,6 +4,28 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-10-27 (v2.0.0, 12:30 remove the old startpage name)
+
+- per user's request, removed every remaining trace of the project's former
+  name: xcodegen project, app target and scheme `StartpageForSafari` are now
+  `UrukyForSafari` (generated `UrukyForSafari.xcodeproj`, `.gitignore`,
+  `build.sh`, docs updated)
+- bundle identifiers renamed to `com.panjas.UrukyForSafari` and
+  `com.panjas.UrukyForSafari.Extension` (also in `SafariSettingsLauncher`
+  and the extension's log subsystem), chosen by the user over keeping the
+  old ids: best done now, before any release, since an id change after
+  distribution orphans existing installs
+- consequence: to macos and ios this is a new app; old installs must be
+  deleted by hand, the extension re-enabled in safari, and its options
+  (including the uruky private-search token) re-entered, because
+  `browser.storage.local` is keyed to the extension's identity
+- dropped the readme's reference to the earlier search-engine integration
+  and fixed the stale branch and remote url in agents.md (`develop`,
+  `heikopanjas/uruky-extension`)
+- older entries in this log keep the old name: the log is append-only
+- version bump: 1.3.6 to 2.0.0 (MAJOR - changed bundle identity requires
+  user action: reinstall, re-enable, re-enter settings)
+
 ### 2026-10-27 (v1.3.6, 12:15 switch to the team-named Panjas-Notarize profile)
 
 - `DashboardOfDoom-Notarize` and the briefly considered

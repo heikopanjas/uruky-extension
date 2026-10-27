@@ -2,12 +2,12 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-XCODEPROJ="StartpageForSafari.xcodeproj"
-SCHEME="StartpageForSafari"
+XCODEPROJ="UrukyForSafari.xcodeproj"
+SCHEME="UrukyForSafari"
 BUILD_DIR=".build"
 DEVELOPMENT_TEAM="8J2G689FCZ"
 APP_NAME="Uruky for Safari"
-APP_BUNDLE_ID="com.panjas.StartpageForSafari"
+APP_BUNDLE_ID="com.panjas.UrukyForSafari"
 INSTALLED_APP="/Applications/${APP_NAME}.app"
 DIST_DIR="$BUILD_DIR/Distribution"
 # notarytool keychain profile holding the App Store Connect API key; create it

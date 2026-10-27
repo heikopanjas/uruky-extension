@@ -7,7 +7,7 @@ import SafariServices
 /// Settings.app manually, which is what `SetupInstructions` describes.
 enum SafariSettingsLauncher {
     /// Must match `PRODUCT_BUNDLE_IDENTIFIER` of the Extension target.
-    static let extensionBundleIdentifier = "com.panjas.StartpageForSafari.Extension"
+    static let extensionBundleIdentifier = "com.panjas.UrukyForSafari.Extension"
 
     static func open() {
         SFSafariApplication.showPreferencesForExtension(

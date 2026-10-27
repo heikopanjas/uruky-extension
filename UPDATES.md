@@ -4,6 +4,215 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-10-27 (v2.0.1, 12:25 add github actions build and release workflows)
+
+- added `build.yml` (pushes and pull requests to `develop` and `feature/**`:
+  checks plus a developer id signed macos build uploaded as an artifact) and
+  `release.yml` (pull requests to `main` build and notarize; the push after
+  merging also publishes a github release `v<version>`), modeled on the
+  senor-particle project per user's direction, using the secrets the user
+  added under the same names
+- differences from senor-particle, and why: the project is generated, so
+  every job installs xcodegen and runs it; no sparkle, appcast or pages; no
+  package dependencies; no unit tests exist, so the check jobs are
+  swift-format lint, the json lint and an unsigned ios simulator build
+  (this project is multiplatform); no arm64-only assertion, the app is
+  universal; instead the build verifies that app and appex are developer
+  id signed with the hardened runtime, catching a notarization blocker on
+  every push rather than at release
+- deduplicated what senor-particle repeats across its two workflows: shared
+  checks are a reusable workflow (`checks.yml`), and setup, signing/archive/
+  export and packaging are composite actions in `.github/actions/`, per the
+  project's dry rule
+- verified locally: manual developer id archive without provisioning
+  profiles succeeds for the app and appex, export and strict codesign pass,
+  the run-number build override reaches the appex; unsigned ios simulator
+  build passes; packaging script tested with relative and absolute paths;
+  actionlint and shellcheck (including the composite action scripts) clean
+- packaging zips with `ditto --sequesterRsrc` from the package directory
+  instead of senor-particle's `cd` plus `$(pwd)` prefix, which broke for
+  absolute paths and left `._` files at the zip root
+- reformatted `App/ContentView.swift` with swift-format (layout of one
+  multi-line string only, text unchanged) so the strict lint passes
+- version bump: 2.0.0 to 2.0.1 (PATCH - ci tooling and formatting, no
+  behavior change)
+
+### 2026-10-27 (v2.0.0, 12:30 remove the old startpage name)
+
+- per user's request, removed every remaining trace of the project's former
+  name: xcodegen project, app target and scheme `StartpageForSafari` are now
+  `UrukyForSafari` (generated `UrukyForSafari.xcodeproj`, `.gitignore`,
+  `build.sh`, docs updated)
+- bundle identifiers renamed to `com.panjas.UrukyForSafari` and
+  `com.panjas.UrukyForSafari.Extension` (also in `SafariSettingsLauncher`
+  and the extension's log subsystem), chosen by the user over keeping the
+  old ids: best done now, before any release, since an id change after
+  distribution orphans existing installs
+- consequence: to macos and ios this is a new app; old installs must be
+  deleted by hand, the extension re-enabled in safari, and its options
+  (including the uruky private-search token) re-entered, because
+  `browser.storage.local` is keyed to the extension's identity
+- dropped the readme's reference to the earlier search-engine integration
+  and fixed the stale branch and remote url in agents.md (`develop`,
+  `heikopanjas/uruky-extension`)
+- older entries in this log keep the old name: the log is append-only
+- version bump: 1.3.6 to 2.0.0 (MAJOR - changed bundle identity requires
+  user action: reinstall, re-enable, re-enter settings)
+
+### 2026-10-27 (v1.3.6, 12:15 switch to the team-named Panjas-Notarize profile)
+
+- `DashboardOfDoom-Notarize` and the briefly considered
+  `developer-id-notarization` were both misleading names for a profile all
+  projects share: one names a single app, the other a certificate type the
+  profile does not hold (it only holds the api key)
+- the user created `Panjas-Notarize` (`<owner>-Notarize`, matching the
+  existing `<App>-Notarize` naming); verified it authenticates and sees
+  the same team history, then made it the default
+- readme documents how to recreate it on a new machine with
+  `store-credentials`
+- version stays 1.3.6: same uncommitted change set
+
+### 2026-10-27 (v1.3.6, 12:05 default to the DashboardOfDoom-Notarize profile)
+
+- the first `./build.sh notarize` run failed at upload: no keychain profile
+  named `developer-id-notarization` exists (confirmed by the user in their
+  own shell, so not a sandbox issue); archive and export had succeeded
+- the profile that works is `DashboardOfDoom-Notarize`; its submission
+  history shows every project of the team (tokentorch, slopctl, senor
+  particle, ...) notarizes through it, so it is the shared profile despite
+  its name and is now the default
+- the submission zip is now named `Uruky-for-Safari-notarization.zip`
+  instead of `notarization.zip`, since notarytool history identifies
+  submissions only by file name and that generic name was already in use
+- version stays 1.3.6: same uncommitted change set
+
+### 2026-10-27 (v1.3.6, 11:58 use the shared developer-id-notarization profile)
+
+- per user, the notarytool keychain profile is `developer-id-notarization`,
+  the one used by the dashboard-of-doom project; made it the default
+  instead of `Uruky-Notarize`
+- renamed the override variable `NOTARY_PROFILE` to `NOTARIZE_PROFILE`, the
+  name the dashboard-of-doom and senor-particle build scripts use, so one
+  shell setting works across all three projects
+- version stays 1.3.6: same uncommitted change set as the entry below
+
+### 2026-10-27 (v1.3.6, 11:50 add notarize command for direct distribution)
+
+- added `./build.sh notarize`: release archive, developer id export, upload
+  with notarytool, staple, `codesign`/`spctl` verification, and a
+  distributable `Uruky-for-Safari-<version>.zip` in `.build/Distribution`
+- modeled on the senor-particle project per user's direction: same
+  `exportOptions.plist` (developer-id, manual signing, no provisioning
+  profiles since the entitlements are sandbox-only) and the same
+  approach of an app store connect api key in a notarytool keychain
+  profile; profile name defaults to `Uruky-Notarize`, overridable via
+  `NOTARY_PROFILE` so an existing profile for the same team can be reused
+- the outcome is judged by the json status rather than the exit code, and
+  a rejection prints apple's notarization log before failing, as the
+  senor-particle ci does
+- fix: the extension appex was built without the hardened runtime
+  (`ENABLE_HARDENED_RUNTIME` was set on the app target only), which
+  notarization rejects; moved the setting to the project base settings
+- verified locally up to export: archive and export succeed, app and appex
+  both signed with developer id application (8J2G689FCZ) with the runtime
+  flag, `codesign --verify --deep --strict` passes, no get-task-allow;
+  the upload to apple was not run
+- version bump: 1.3.5 to 1.3.6 (PATCH - build tooling and signing fix, no
+  change to app or extension behavior)
+
+### 2026-10-27 (v1.3.5, 11:35 declare supported interface orientations)
+
+- the ios build warned that all interface orientations must be supported
+  unless the app requires full screen: the synthesized app info.plist had
+  no orientation keys at all, and ipad multitasking needs all four
+- added `INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone` (portrait,
+  both landscapes) and `..._iPad` (all four) to the app target, matching
+  xcode's own ios app template defaults
+- tried scoping them to ios sdks with `[sdk=iphone*]`, dropped it: xcode
+  writes both keys into the macos info.plist anyway (as empty arrays, like
+  the existing `UILaunchScreen`), so the conditional bought nothing
+- verified: warning gone from the ios release build, ipad and iphone arrays
+  present in the built info.plist, macos build unaffected
+- version bump: 1.3.4 to 1.3.5 (PATCH - build configuration fix, no
+  behavior change)
+
+### 2026-10-27 (v1.3.4, 11:27 angle the keycap from the bottom left, enlarge it)
+
+- per user's direction, the keycap is now seen slightly from the bottom left
+  instead of straight on: the top surface sits up and right, so the front
+  and left walls are the widest
+- new `walls.svg` layer: four translucent facets from the canvas edges to
+  the top surface, lit from the upper left (back +22% white, left +10%
+  white, right +10% black, front +16% black); without distinct wall shading
+  an offset top just read as off-center, not as 3d. being overlays, the
+  facets need no per-appearance fills and work in dark, tinted and clear
+- compared a mild and a strong angle; mild chosen, the strong one shrank the
+  top surface enough to weaken the "u" at 32 px
+- then enlarged the cap top per user's request: walls narrowed ~25% (left
+  182, right 108, back 86, front 222 px on the 1024 canvas), top now
+  734x716; the legend scales with the top width (~13% larger), which also
+  makes the "u" noticeably crisper at 32 px
+- extension pngs regenerated; lint, macos and ios simulator builds pass
+- version stays 1.3.4: still the same uncommitted change set as the two
+  entries above
+
+### 2026-10-27 (v1.3.4, 11:25 switch icon to ibm keycap design)
+
+- per user's direction, tried a second design and the user picked it over
+  the magnifier above (which was never committed): an eggshell keycap from
+  an old ibm keyboard, seen from above, with a lowercase "u" centered on it
+  in a monospaced slab-serif face
+- also rendered a variant with the legend top-left, as on a real model m
+  key; rejected because the corner "u" turns into a smudge at 16-32 px
+- font: go mono bold over courier new bold, for its sharper, more prominent
+  slab serifs; the glyph is stored as an outline path in `legend.svg`
+  (extracted via coretext) so rendering never depends on the font being
+  installed; go fonts are bsd-licensed
+- `App/AppIcon.icon` layers are now `top.svg` (dished cap top, offset toward
+  the back so more front skirt shows) and `legend.svg`; the skirt is the
+  icon's automatic-gradient background fill. dark mode is a dark gray cap
+  with an eggshell legend, like ibm's modifier keys
+- tinted and clear needed explicit tinted fills on both layers (dark cap
+  top, white legend); the default light cap top otherwise became a bright
+  tile with the legend invisible
+- extension pngs regenerated from the new `.icon`; the pipeline, the
+  actool fallback approach and all other decisions from the entry above stand
+- version stays 1.3.4: same uncommitted change set as the entry above, one
+  commit
+
+### 2026-10-27 (v1.3.4, new black-on-white magnifier icon with eu stars)
+
+- replaced the navy calligraphic "U" app icon and the placeholder navy
+  magnifier extension icons with one shared design, per user's direction:
+  a black magnifying glass with the 12-star ring of the eu flag inside the
+  lens, on white (white on black in dark mode)
+- the app icon is now an icon composer document, `App/AppIcon.icon` (two
+  layer svgs, `lens.svg` and `stars.svg`, plus `icon.json` with light, dark
+  and tinted fills), so macos 26+ and ios 26+ get a real liquid glass icon
+  with all appearances instead of a legacy icon boxed in by the system
+- removed `App/Assets.xcassets` and `design/app-icon.svg`: tested that
+  xcode 26.3's actool compiles the `.icon` alone into the flat fallbacks
+  for the existing deployment targets (squircle-masked, shadowed
+  `AppIcon.icns` for macos 14/15, opaque pngs for ios 17-25), so the
+  hand-built squircle pipeline from v1.3.3 is no longer needed
+- xcodegen 2.46 picks up `App/AppIcon.icon` as a single `wrapper.icon`
+  resource; `project.yml` needed no change beyond the version
+- icon composer renders a stroked `fill="none"` shape as a solid fill (the
+  first draft's lens came out as a black disk hiding the stars), so all
+  layer shapes are filled paths: an even-odd ring and a capsule handle
+- the tinted appearance needs an explicit white glyph fill; with the default
+  black fill the glyph disappeared into the dark tint
+- `design/generate-icons.sh` now derives the extension pngs
+  (`Extension/Resources/images/icon-48..512.png`) from the `.icon` via icon
+  composer's bundled `ictool`, inset into the macos template with a soft
+  shadow so the white tile stays visible on white settings panes; output is
+  stripped to 8-bit rgba (ictool exports 16-bit with exif, ~6x larger)
+- verified: every appearance rendered with `ictool`, lint passes, macos and
+  ios simulator builds succeed, actool emits `AppIcon.icns` for macos
+- xcode 26+ is now required to build (recorded in agents.md tech stack)
+- version bump: 1.3.3 to 1.3.4 (PATCH - branding asset replacement, no
+  change to extension behavior, same as the v1.3.3 icon precedent)
+
 ### 2026-09-12 (v1.3.3, add a real app icon, fix macOS squircle shape)
 
 - designed the container app's first real icon: a white calligraphic capital

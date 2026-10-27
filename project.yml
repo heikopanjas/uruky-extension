@@ -1,4 +1,4 @@
-name: StartpageForSafari
+name: UrukyForSafari
 
 options:
   bundleIdPrefix: com.panjas
@@ -10,10 +10,13 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
-    MARKETING_VERSION: "1.3.3"
+    MARKETING_VERSION: "2.0.1"
     CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: "8J2G689FCZ"
     CODE_SIGN_STYLE: Automatic
+    # Required for notarization on every executable, the appex included;
+    # ignored by iOS.
+    ENABLE_HARDENED_RUNTIME: YES
 
 targets:
 
@@ -22,7 +25,7 @@ targets:
   # extension; on iOS it is the same, minus the "open Safari settings" button
   # (there is no equivalent API on iOS -- the user goes through Settings.app).
   # ---------------------------------------------------------------------------
-  StartpageForSafari:
+  UrukyForSafari:
     type: application
     platform: auto
     supportedDestinations: [macOS, iOS]
@@ -34,16 +37,19 @@ targets:
         # targets using supportedDestinations (XcodeGen issue #1577).
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-        PRODUCT_BUNDLE_IDENTIFIER: com.panjas.StartpageForSafari
+        PRODUCT_BUNDLE_IDENTIFIER: com.panjas.UrukyForSafari
         PRODUCT_NAME: Uruky for Safari
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        ENABLE_HARDENED_RUNTIME: YES
         # No Info.plist checked in for the App target, unlike Extension: let
         # Xcode synthesize one from the INFOPLIST_KEY_* settings below.
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Uruky
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        # Xcode's iOS app template defaults. iPad multitasking requires all
+        # four orientations; without these keys the build warns about it.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         # One entitlements file per platform: app-sandbox is macOS-only.
         CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: App/macOS.entitlements
         CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]: App/iOS.entitlements
@@ -92,7 +98,7 @@ targets:
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         # Must be a prefix-extension of the container app's identifier, or
         # Safari refuses to load the extension without a useful error.
-        PRODUCT_BUNDLE_IDENTIFIER: com.panjas.StartpageForSafari.Extension
+        PRODUCT_BUNDLE_IDENTIFIER: com.panjas.UrukyForSafari.Extension
         PRODUCT_NAME: Uruky Extension
         CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: Extension/macOS.entitlements
         CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]: Extension/iOS.entitlements
@@ -111,10 +117,10 @@ targets:
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).SafariWebExtensionHandler
 
 schemes:
-  StartpageForSafari:
+  UrukyForSafari:
     build:
       targets:
-        StartpageForSafari: all
+        UrukyForSafari: all
     run:
       config: Debug
     archive:

@@ -32,6 +32,68 @@ running from Xcode), enable the extension in Safari's settings, then set
 Safari's own search engine to DuckDuckGo or Ecosia and enable only that
 engine in the extension's options page.
 
+### Distributing the macOS app outside the App Store
+
+```sh
+./build.sh notarize   # -> .build/Distribution/Uruky-for-Safari-<version>.zip
+```
+
+This archives a Release build, exports it signed with the team's Developer
+ID Application certificate (`exportOptions.plist`, manual signing; the
+entitlements are sandbox-only, so no provisioning profiles are needed),
+notarizes it, staples the ticket, verifies it with `codesign` and `spctl`,
+and zips the stapled app with `ditto`. If Apple rejects the upload, the
+script prints the notarization log and stops.
+
+Notarization authenticates with the team's App Store Connect API key,
+stored in the `notarytool` keychain profile `Panjas-Notarize`, which is
+shared by all of the team's Developer ID projects. Override it with
+`NOTARIZE_PROFILE=<profile> ./build.sh notarize`, the same variable those
+projects' build scripts use. The submission is uploaded as
+`Uruky-for-Safari-notarization.zip`, so it is identifiable in
+`xcrun notarytool history`. On a new machine, create the profile once from
+the API key (App Store Connect, Users and Access, Integrations):
+
+```sh
+xcrun notarytool store-credentials Panjas-Notarize \
+  --key /path/to/AuthKey_<KEY_ID>.p8 --key-id <KEY_ID> --issuer <ISSUER_ID>
+```
+
+Notarization requires the hardened runtime on every executable,
+which is why `ENABLE_HARDENED_RUNTIME` sits in `project.yml`'s base settings
+rather than on the App target only: the embedded `.appex` needs it too.
+
+### GitHub Actions
+
+Both workflows run on `macos-26` (Xcode 26, needed for the `.icon`), install
+XcodeGen with Homebrew and generate the project first, and share their steps
+through `.github/workflows/checks.yml` (a reusable workflow) and the
+composite actions in `.github/actions/`:
+
+- **`checks.yml`**: `swift-format lint --strict` over `App` and `Extension`,
+  `./build.sh lint` for the extension JSON, and an unsigned iOS Simulator
+  build as a compile check (iOS is installed locally, not shipped from CI).
+- **`build.yml`**: on pushes and pull requests to `develop` and
+  `feature/**`, runs the checks, then archives a Developer ID signed macOS
+  app (`build-app` action: imports the certificate into a temporary
+  keychain, archives with manual signing, exports, and verifies that the app
+  and the appex are Developer ID signed with the hardened runtime) and
+  uploads a zip with the app, `CHANGELOG.md` and `BILL_OF_MATERIALS.md`
+  (`package-app` action).
+- **`release.yml`**: on pull requests to `main` it runs the same build plus
+  notarization with the App Store Connect API key, then staples and checks
+  Gatekeeper acceptance; on the push after merging it also publishes a GitHub
+  release tagged `v<MARKETING_VERSION>` with that zip. The release fails if
+  the tag already exists on another commit, so bump the version before each
+  release merge.
+
+The build number is the workflow run number (`CURRENT_PROJECT_VERSION`).
+Repository secrets: `APPLE_CERTIFICATE_P12_BASE64`,
+`APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` (both workflows) and
+`APPSTORE_CONNECT_KEY_ID`, `APPSTORE_CONNECT_ISSUER_ID`,
+`APPSTORE_CONNECT_KEY_P8_BASE64` (release only), the same names as in the
+team's other projects.
+
 ## The fundamental limitation
 
 Safari has no API for adding a custom search engine, and has not had one in
@@ -99,10 +161,8 @@ not. Treat this value like a credential: it is deliberately kept out of
 `rules.json`/`background.js` and stored only in `browser.storage.local`, so it
 is never committed to source control.
 
-No Uruky-specific bot-detection or block-page behavior is known yet (unlike
-the previous Startpage integration, which hit server-side network-reputation
-blocking documented in `UPDATES.md`'s history). Update this section if that
-changes.
+No Uruky-specific bot-detection or block-page behavior is known yet. Update
+this section if that changes.
 
 ## XcodeGen gotchas encoded in project.yml
 
@@ -128,7 +188,7 @@ one entitlements setting. `CODE_SIGN_ENTITLEMENTS[sdk=macosx*]` and friends
 split it.
 
 Also note the extension's bundle identifier must be a prefix-extension of the
-container app's (`com.panjas.StartpageForSafari.Extension`). Get this wrong and
+container app's (`com.panjas.UrukyForSafari.Extension`). Get this wrong and
 Safari silently refuses to load the extension with no useful error.
 
 ## Adding a search engine
@@ -154,41 +214,53 @@ list covers the common European ones. Add yours if searches from
   would do it.
 - No native messaging. `SafariWebExtensionHandler` is a stub that exists only
   because Info.plist requires a principal class.
-- Icons in `Extension/Resources/images/` (the Safari toolbar/extension-list
-  icons) are still generated placeholders. The container app's icon is not —
-  see below.
 
-## App icon
+## Icon
 
-The container app's icon (`App/Assets.xcassets/AppIcon.appiconset`) is a
-white calligraphic "U" (Snell Roundhand Black) on a navy gradient.
+One design serves both the container app and the Safari extension: an
+eggshell keycap from an old IBM keyboard, seen from above and slightly from
+the bottom left, with a lowercase "u" in Go Mono Bold (a monospaced slab
+serif) centered on the cap. In dark mode the cap turns dark gray with an
+eggshell legend.
 
-**iOS and macOS need different art, not just different sizes.** iOS/iPadOS
-auto-masks whatever full-bleed square you give it, so that slot
-(`icon-ios-1024.png`) is a single opaque 1024×1024 image with no alpha
-channel. macOS does **not** auto-mask third-party app icons (confirmed on
-this project's actual host, macOS 15 Sequoia, after shipping a full-bleed
-square that showed up in the Dock as a hard-cornered square next to every
-other app's properly shaped icon) — the rounded-square "squircle" shape and
-its drop shadow have to be baked into the art yourself, per Apple's icon
-template (~824×824 tile centered in the 1024×1024 canvas, ~100px margin).
-The macOS slots (`icon-mac-*.png`, 16 through 512 at 1x/2x) are that same
-content, procedurally masked to a superellipse silhouette with a soft
-offset shadow composited behind it — see `design/generate-icons.sh`.
+**App icon.** `App/AppIcon.icon` is an Icon Composer document (Xcode 26+).
+The background fill (an automatic gradient) is the keycap's base color;
+three layer SVGs in `Assets/`, all drawn on the full 1024×1024 canvas, sit
+on top: `walls.svg` (four translucent black/white facets from the canvas
+edges to the top surface, lit from the upper left: back lightest, front
+darkest; being overlays, they work unchanged in every appearance),
+`top.svg` (the dished top surface, a rounded rect with its own gradient,
+offset up and right so the front and left walls are widest, which sets the
+viewing angle) and `legend.svg` (the "u", scaled with the top surface). The legend is the glyph outline as a path, extracted from Go Mono Bold
+with CoreText (`CTFontCreatePathForGlyph`), so rendering doesn't depend on
+the font being installed. Go fonts are BSD-licensed. `icon.json` overrides
+colors for the dark and tinted appearances; clear is derived by the system.
+XcodeGen adds the `.icon` as a resource of the App target and
+`ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` in `project.yml` points at it.
+There is no `AppIcon.appiconset`: at build time `actool` compiles the
+`.icon` into the Liquid Glass icon for macOS 26+ / iOS 26+ *and* the flat
+fallbacks for older deployment targets, a squircle-masked, shadowed
+`AppIcon.icns` for macOS 14/15 and opaque PNGs for iOS 17–25. Edit the SVGs
+directly or open the `.icon` in Icon Composer (Xcode → Open Developer Tool).
 
-`project.yml`'s `ASSETCATALOG_COMPILER_APPICON_NAME` points the App target
-at the asset catalog.
+Two Icon Composer gotchas:
 
-The editable source is `design/app-icon.svg` (just the gradient + letter,
-full-bleed, no shape or shadow — that part is generated). After editing it,
-regenerate every icon size for both platforms with:
+- Use filled shapes only. A `stroke` with `fill="none"` renders as a solid
+  fill (an earlier draft's stroked ring came out as a disk).
+- A layer's SVG colors only apply where `icon.json` sets no
+  `fill-specializations` for that appearance. Tinted (and clear) map
+  luminance to the tint, so a light cap top with a dark legend comes out as a
+  bright tile with the legend invisible; both layers need explicit tinted
+  fills: dark cap top, white legend.
+
+**Extension icons.** `Extension/Resources/images/icon-*.png` (referenced
+from `manifest.json`) are rendered from the app icon:
 
 ```sh
 ./design/generate-icons.sh
 ```
 
-Requires `qlmanage` (macOS Quick Look, used to rasterize the SVG — WebKit
-has access to system fonts like Snell Roundhand, unlike ImageMagick's own
-SVG delegate) and `magick` (ImageMagick, for the masking/shadow/resizing
-pipeline). The script has more detail on why the shadow layer specifically
-needs `-define png:color-type=6` before compositing.
+It exports the macOS tile with Icon Composer's bundled `ictool`, insets it
+into Apple's macOS template (~824×824 tile centered in 1024×1024) with a soft
+drop shadow so the light tile stays visible on white backgrounds, and resizes
+to 48–512 px. Requires Xcode 26+ and `magick` (ImageMagick).

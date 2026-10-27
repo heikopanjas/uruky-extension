@@ -1,0 +1,49 @@
+name: Checks
+
+# Shared by build.yml and release.yml; not triggered on its own.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Sources
+    runs-on: macos-26
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Lint Swift Sources
+        run: xcrun swift-format lint --strict --recursive App Extension
+
+      - name: Lint Extension JSON
+        run: ./build.sh lint
+
+  ios:
+    name: Build iOS App
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set Up Project
+        uses: ./.github/actions/setup-project
+
+      - name: Build For iOS Simulator
+        run: |
+          set -euo pipefail
+          # Compile check only: iOS builds are signed and installed locally
+          # with `./build.sh install-ios`, not distributed from CI.
+          xcodebuild build \
+            -project UrukyForSafari.xcodeproj \
+            -scheme UrukyForSafari \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build/DerivedData/iOS \
+            CODE_SIGNING_ALLOWED=NO

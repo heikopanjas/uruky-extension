@@ -1,0 +1,147 @@
+name: Build Signed macOS App
+description: >
+  Archive the macOS app with its embedded Safari extension, export it signed
+  with Developer ID, and verify the signatures. Exports APP_VERSION,
+  BUILD_NUMBER, BUILD_DIR, APP_NAME, APP_PATH and KEYCHAIN_PATH to the job
+  environment; the job must delete KEYCHAIN_PATH in an always() step.
+
+inputs:
+  certificate-p12-base64:
+    description: Base64-encoded Developer ID Application certificate (.p12)
+    required: true
+  certificate-password:
+    description: Password of the .p12
+    required: true
+  signing-identity:
+    description: 'Signing identity, e.g. "Developer ID Application: Name (TEAMID)"'
+    required: true
+
+outputs:
+  app-version:
+    description: MARKETING_VERSION of the built app
+    value: ${{ steps.metadata.outputs.app-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set Up Project
+      uses: ./.github/actions/setup-project
+
+    - name: Read Build Metadata
+      id: metadata
+      shell: bash
+      run: |
+        set -euo pipefail
+        PROJECT=UrukyForSafari.xcodeproj
+        SCHEME=UrukyForSafari
+        DESTINATION=generic/platform=macOS
+        DERIVED_DATA_PATH=.build/DerivedData/CI
+        APP_VERSION="$(xcodebuild \
+          -project "$PROJECT" \
+          -scheme "$SCHEME" \
+          -configuration Release \
+          -destination "$DESTINATION" \
+          -derivedDataPath "$DERIVED_DATA_PATH" \
+          -showBuildSettings | awk '/ MARKETING_VERSION / { print $3; exit }')"
+        if [[ ! "$APP_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+          echo "MARKETING_VERSION must contain a version like 1.0 or 1.0.0" >&2
+          exit 1
+        fi
+        BUILD_DIR=.build/CI
+        APP_NAME="Uruky for Safari"
+        {
+          echo "PROJECT=$PROJECT"
+          echo "SCHEME=$SCHEME"
+          echo "DESTINATION=$DESTINATION"
+          echo "DERIVED_DATA_PATH=$DERIVED_DATA_PATH"
+          echo "BUILD_DIR=$BUILD_DIR"
+          echo "APP_NAME=$APP_NAME"
+          echo "ARCHIVE_PATH=$BUILD_DIR/$APP_NAME.xcarchive"
+          echo "EXPORT_PATH=$BUILD_DIR/export"
+          echo "APP_PATH=$BUILD_DIR/export/$APP_NAME.app"
+          echo "APP_VERSION=$APP_VERSION"
+          echo "BUILD_NUMBER=$GITHUB_RUN_NUMBER"
+          echo "DEVELOPMENT_TEAM=$(/usr/libexec/PlistBuddy -c 'Print :teamID' exportOptions.plist)"
+        } >> "$GITHUB_ENV"
+        echo "app-version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+        echo "Building $APP_NAME $APP_VERSION ($GITHUB_RUN_NUMBER)"
+
+    - name: Import Developer ID Certificate
+      shell: bash
+      env:
+        APPLE_CERTIFICATE_P12_BASE64: ${{ inputs.certificate-p12-base64 }}
+        APPLE_CERTIFICATE_PASSWORD: ${{ inputs.certificate-password }}
+        APPLE_SIGNING_IDENTITY: ${{ inputs.signing-identity }}
+      run: |
+        set -euo pipefail
+        : "${APPLE_CERTIFICATE_P12_BASE64:?Missing APPLE_CERTIFICATE_P12_BASE64 secret}"
+        : "${APPLE_CERTIFICATE_PASSWORD:?Missing APPLE_CERTIFICATE_PASSWORD secret}"
+        : "${APPLE_SIGNING_IDENTITY:?Missing APPLE_SIGNING_IDENTITY secret}"
+        CERTIFICATE_PATH="$RUNNER_TEMP/developer-id-application.p12"
+        KEYCHAIN_PATH="$RUNNER_TEMP/uruky-signing.keychain-db"
+        KEYCHAIN_PASSWORD="$(uuidgen)"
+        echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+        printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | base64 -D > "$CERTIFICATE_PATH"
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        security import "$CERTIFICATE_PATH" \
+          -P "$APPLE_CERTIFICATE_PASSWORD" \
+          -A \
+          -t cert \
+          -f pkcs12 \
+          -k "$KEYCHAIN_PATH"
+        rm -f "$CERTIFICATE_PATH"
+        security set-key-partition-list \
+          -S apple-tool:,apple:,codesign: \
+          -s \
+          -k "$KEYCHAIN_PASSWORD" \
+          "$KEYCHAIN_PATH"
+        security list-keychains -d user -s "$KEYCHAIN_PATH"
+        security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -F "$APPLE_SIGNING_IDENTITY"
+
+    - name: Archive Release App
+      shell: bash
+      env:
+        APPLE_SIGNING_IDENTITY: ${{ inputs.signing-identity }}
+      run: |
+        set -euo pipefail
+        rm -rf "$BUILD_DIR" "$DERIVED_DATA_PATH"
+        mkdir -p "$BUILD_DIR"
+        # Manual signing needs no provisioning profiles: the app and the
+        # extension use sandbox entitlements only.
+        xcodebuild archive \
+          -project "$PROJECT" \
+          -scheme "$SCHEME" \
+          -configuration Release \
+          -destination "$DESTINATION" \
+          -derivedDataPath "$DERIVED_DATA_PATH" \
+          -archivePath "$ARCHIVE_PATH" \
+          CODE_SIGN_STYLE=Manual \
+          DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+          CODE_SIGN_IDENTITY="$APPLE_SIGNING_IDENTITY" \
+          MARKETING_VERSION="$APP_VERSION" \
+          CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+          OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH"
+
+    - name: Export Developer ID App
+      shell: bash
+      run: |
+        set -euo pipefail
+        xcodebuild -exportArchive \
+          -archivePath "$ARCHIVE_PATH" \
+          -exportPath "$EXPORT_PATH" \
+          -exportOptionsPlist exportOptions.plist
+
+    - name: Verify Exported App
+      shell: bash
+      run: |
+        set -euo pipefail
+        codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+        # Notarization rejects any executable without the hardened runtime;
+        # catch a regression here rather than at release time.
+        for CODE in "$APP_PATH" "$APP_PATH/Contents/PlugIns/Uruky Extension.appex"; do
+          SIGNATURE="$(codesign -dv --verbose=2 "$CODE" 2>&1)"
+          grep -q 'flags=.*runtime' <<<"$SIGNATURE" || { echo "$CODE lacks the hardened runtime" >&2; exit 1; }
+          grep -q '^Authority=Developer ID Application' <<<"$SIGNATURE" || { echo "$CODE is not Developer ID signed" >&2; exit 1; }
+        done

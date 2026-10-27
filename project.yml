@@ -10,7 +10,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
-    MARKETING_VERSION: "1.3.4"
+    MARKETING_VERSION: "1.3.5"
     CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: "8J2G689FCZ"
     CODE_SIGN_STYLE: Automatic
@@ -44,6 +44,10 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Uruky
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        # Xcode's iOS app template defaults. iPad multitasking requires all
+        # four orientations; without these keys the build warns about it.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         # One entitlements file per platform: app-sandbox is macOS-only.
         CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: App/macOS.entitlements
         CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]: App/iOS.entitlements

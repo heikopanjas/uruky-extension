@@ -4,6 +4,22 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-10-27 (v1.3.5, 11:35 declare supported interface orientations)
+
+- the ios build warned that all interface orientations must be supported
+  unless the app requires full screen: the synthesized app info.plist had
+  no orientation keys at all, and ipad multitasking needs all four
+- added `INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone` (portrait,
+  both landscapes) and `..._iPad` (all four) to the app target, matching
+  xcode's own ios app template defaults
+- tried scoping them to ios sdks with `[sdk=iphone*]`, dropped it: xcode
+  writes both keys into the macos info.plist anyway (as empty arrays, like
+  the existing `UILaunchScreen`), so the conditional bought nothing
+- verified: warning gone from the ios release build, ipad and iphone arrays
+  present in the built info.plist, macos build unaffected
+- version bump: 1.3.4 to 1.3.5 (PATCH - build configuration fix, no
+  behavior change)
+
 ### 2026-10-27 (v1.3.4, 11:27 angle the keycap from the bottom left, enlarge it)
 
 - per user's direction, the keycap is now seen slightly from the bottom left

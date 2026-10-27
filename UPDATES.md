@@ -4,6 +4,83 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-10-27 (v1.3.4, 11:27 angle the keycap from the bottom left, enlarge it)
+
+- per user's direction, the keycap is now seen slightly from the bottom left
+  instead of straight on: the top surface sits up and right, so the front
+  and left walls are the widest
+- new `walls.svg` layer: four translucent facets from the canvas edges to
+  the top surface, lit from the upper left (back +22% white, left +10%
+  white, right +10% black, front +16% black); without distinct wall shading
+  an offset top just read as off-center, not as 3d. being overlays, the
+  facets need no per-appearance fills and work in dark, tinted and clear
+- compared a mild and a strong angle; mild chosen, the strong one shrank the
+  top surface enough to weaken the "u" at 32 px
+- then enlarged the cap top per user's request: walls narrowed ~25% (left
+  182, right 108, back 86, front 222 px on the 1024 canvas), top now
+  734x716; the legend scales with the top width (~13% larger), which also
+  makes the "u" noticeably crisper at 32 px
+- extension pngs regenerated; lint, macos and ios simulator builds pass
+- version stays 1.3.4: still the same uncommitted change set as the two
+  entries above
+
+### 2026-10-27 (v1.3.4, 11:25 switch icon to ibm keycap design)
+
+- per user's direction, tried a second design and the user picked it over
+  the magnifier above (which was never committed): an eggshell keycap from
+  an old ibm keyboard, seen from above, with a lowercase "u" centered on it
+  in a monospaced slab-serif face
+- also rendered a variant with the legend top-left, as on a real model m
+  key; rejected because the corner "u" turns into a smudge at 16-32 px
+- font: go mono bold over courier new bold, for its sharper, more prominent
+  slab serifs; the glyph is stored as an outline path in `legend.svg`
+  (extracted via coretext) so rendering never depends on the font being
+  installed; go fonts are bsd-licensed
+- `App/AppIcon.icon` layers are now `top.svg` (dished cap top, offset toward
+  the back so more front skirt shows) and `legend.svg`; the skirt is the
+  icon's automatic-gradient background fill. dark mode is a dark gray cap
+  with an eggshell legend, like ibm's modifier keys
+- tinted and clear needed explicit tinted fills on both layers (dark cap
+  top, white legend); the default light cap top otherwise became a bright
+  tile with the legend invisible
+- extension pngs regenerated from the new `.icon`; the pipeline, the
+  actool fallback approach and all other decisions from the entry above stand
+- version stays 1.3.4: same uncommitted change set as the entry above, one
+  commit
+
+### 2026-10-27 (v1.3.4, new black-on-white magnifier icon with eu stars)
+
+- replaced the navy calligraphic "U" app icon and the placeholder navy
+  magnifier extension icons with one shared design, per user's direction:
+  a black magnifying glass with the 12-star ring of the eu flag inside the
+  lens, on white (white on black in dark mode)
+- the app icon is now an icon composer document, `App/AppIcon.icon` (two
+  layer svgs, `lens.svg` and `stars.svg`, plus `icon.json` with light, dark
+  and tinted fills), so macos 26+ and ios 26+ get a real liquid glass icon
+  with all appearances instead of a legacy icon boxed in by the system
+- removed `App/Assets.xcassets` and `design/app-icon.svg`: tested that
+  xcode 26.3's actool compiles the `.icon` alone into the flat fallbacks
+  for the existing deployment targets (squircle-masked, shadowed
+  `AppIcon.icns` for macos 14/15, opaque pngs for ios 17-25), so the
+  hand-built squircle pipeline from v1.3.3 is no longer needed
+- xcodegen 2.46 picks up `App/AppIcon.icon` as a single `wrapper.icon`
+  resource; `project.yml` needed no change beyond the version
+- icon composer renders a stroked `fill="none"` shape as a solid fill (the
+  first draft's lens came out as a black disk hiding the stars), so all
+  layer shapes are filled paths: an even-odd ring and a capsule handle
+- the tinted appearance needs an explicit white glyph fill; with the default
+  black fill the glyph disappeared into the dark tint
+- `design/generate-icons.sh` now derives the extension pngs
+  (`Extension/Resources/images/icon-48..512.png`) from the `.icon` via icon
+  composer's bundled `ictool`, inset into the macos template with a soft
+  shadow so the white tile stays visible on white settings panes; output is
+  stripped to 8-bit rgba (ictool exports 16-bit with exif, ~6x larger)
+- verified: every appearance rendered with `ictool`, lint passes, macos and
+  ios simulator builds succeed, actool emits `AppIcon.icns` for macos
+- xcode 26+ is now required to build (recorded in agents.md tech stack)
+- version bump: 1.3.3 to 1.3.4 (PATCH - branding asset replacement, no
+  change to extension behavior, same as the v1.3.3 icon precedent)
+
 ### 2026-09-12 (v1.3.3, add a real app icon, fix macOS squircle shape)
 
 - designed the container app's first real icon: a white calligraphic capital

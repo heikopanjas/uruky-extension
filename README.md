@@ -154,41 +154,53 @@ list covers the common European ones. Add yours if searches from
   would do it.
 - No native messaging. `SafariWebExtensionHandler` is a stub that exists only
   because Info.plist requires a principal class.
-- Icons in `Extension/Resources/images/` (the Safari toolbar/extension-list
-  icons) are still generated placeholders. The container app's icon is not —
-  see below.
 
-## App icon
+## Icon
 
-The container app's icon (`App/Assets.xcassets/AppIcon.appiconset`) is a
-white calligraphic "U" (Snell Roundhand Black) on a navy gradient.
+One design serves both the container app and the Safari extension: an
+eggshell keycap from an old IBM keyboard, seen from above and slightly from
+the bottom left, with a lowercase "u" in Go Mono Bold (a monospaced slab
+serif) centered on the cap. In dark mode the cap turns dark gray with an
+eggshell legend.
 
-**iOS and macOS need different art, not just different sizes.** iOS/iPadOS
-auto-masks whatever full-bleed square you give it, so that slot
-(`icon-ios-1024.png`) is a single opaque 1024×1024 image with no alpha
-channel. macOS does **not** auto-mask third-party app icons (confirmed on
-this project's actual host, macOS 15 Sequoia, after shipping a full-bleed
-square that showed up in the Dock as a hard-cornered square next to every
-other app's properly shaped icon) — the rounded-square "squircle" shape and
-its drop shadow have to be baked into the art yourself, per Apple's icon
-template (~824×824 tile centered in the 1024×1024 canvas, ~100px margin).
-The macOS slots (`icon-mac-*.png`, 16 through 512 at 1x/2x) are that same
-content, procedurally masked to a superellipse silhouette with a soft
-offset shadow composited behind it — see `design/generate-icons.sh`.
+**App icon.** `App/AppIcon.icon` is an Icon Composer document (Xcode 26+).
+The background fill (an automatic gradient) is the keycap's base color;
+three layer SVGs in `Assets/`, all drawn on the full 1024×1024 canvas, sit
+on top: `walls.svg` (four translucent black/white facets from the canvas
+edges to the top surface, lit from the upper left: back lightest, front
+darkest; being overlays, they work unchanged in every appearance),
+`top.svg` (the dished top surface, a rounded rect with its own gradient,
+offset up and right so the front and left walls are widest, which sets the
+viewing angle) and `legend.svg` (the "u", scaled with the top surface). The legend is the glyph outline as a path, extracted from Go Mono Bold
+with CoreText (`CTFontCreatePathForGlyph`), so rendering doesn't depend on
+the font being installed. Go fonts are BSD-licensed. `icon.json` overrides
+colors for the dark and tinted appearances; clear is derived by the system.
+XcodeGen adds the `.icon` as a resource of the App target and
+`ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` in `project.yml` points at it.
+There is no `AppIcon.appiconset`: at build time `actool` compiles the
+`.icon` into the Liquid Glass icon for macOS 26+ / iOS 26+ *and* the flat
+fallbacks for older deployment targets, a squircle-masked, shadowed
+`AppIcon.icns` for macOS 14/15 and opaque PNGs for iOS 17–25. Edit the SVGs
+directly or open the `.icon` in Icon Composer (Xcode → Open Developer Tool).
 
-`project.yml`'s `ASSETCATALOG_COMPILER_APPICON_NAME` points the App target
-at the asset catalog.
+Two Icon Composer gotchas:
 
-The editable source is `design/app-icon.svg` (just the gradient + letter,
-full-bleed, no shape or shadow — that part is generated). After editing it,
-regenerate every icon size for both platforms with:
+- Use filled shapes only. A `stroke` with `fill="none"` renders as a solid
+  fill (an earlier draft's stroked ring came out as a disk).
+- A layer's SVG colors only apply where `icon.json` sets no
+  `fill-specializations` for that appearance. Tinted (and clear) map
+  luminance to the tint, so a light cap top with a dark legend comes out as a
+  bright tile with the legend invisible; both layers need explicit tinted
+  fills: dark cap top, white legend.
+
+**Extension icons.** `Extension/Resources/images/icon-*.png` (referenced
+from `manifest.json`) are rendered from the app icon:
 
 ```sh
 ./design/generate-icons.sh
 ```
 
-Requires `qlmanage` (macOS Quick Look, used to rasterize the SVG — WebKit
-has access to system fonts like Snell Roundhand, unlike ImageMagick's own
-SVG delegate) and `magick` (ImageMagick, for the masking/shadow/resizing
-pipeline). The script has more detail on why the shadow layer specifically
-needs `-define png:color-type=6` before compositing.
+It exports the macOS tile with Icon Composer's bundled `ictool`, insets it
+into Apple's macOS template (~824×824 tile centered in 1024×1024) with a soft
+drop shadow so the light tile stays visible on white backgrounds, and resizes
+to 48–512 px. Requires Xcode 26+ and `magick` (ImageMagick).

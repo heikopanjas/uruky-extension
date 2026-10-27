@@ -1,6 +1,6 @@
 # Project Instructions for AI Coding Agents
 
-**Last updated:** 2026-09-12 (4)
+**Last updated:** 2026-10-27 (3)
 
 <!-- {preamble} -->
 
@@ -32,6 +32,8 @@ declarativeNetRequest vs. webNavigation redirect strategies, and known limitatio
   or `./build.sh generate`
 - **Version Control:** Git — `main` branch, remote at
   https://github.com/heikopanjas/startpage-extension
+- **Toolchain:** Xcode 26+ is required: the app icon (`App/AppIcon.icon`) is an
+  Icon Composer document, which older `actool` versions cannot compile
 - **Package Manager:** None — no npm/CocoaPods/SPM dependencies; the JS resources
   ship as plain files, no bundler
 - **License:** MIT (`LICENSE`)
@@ -117,14 +119,22 @@ When initializing a session or analyzing the workspace, refer to instruction fil
 - All `xcodebuild` invocations in `build.sh` pass `DEVELOPMENT_TEAM=8J2G689FCZ`
   and `-allowProvisioningUpdates` explicitly, so signing doesn't depend on
   whichever team Xcode's automatic signing happens to pick locally
-- The container app's icon lives in `App/Assets.xcassets/AppIcon.appiconset`;
-  its editable SVG source and regeneration steps are in README.md's "App
-  icon" section. Edit `design/app-icon.svg`, not the PNGs, then run
-  `./design/generate-icons.sh` to regenerate all sizes for both platforms
-- macOS does **not** auto-mask app icons the way iOS does (confirmed on this
-  project's macOS 15 host) — the rounded-square shape and its shadow must be
-  baked into the macOS PNGs themselves, or the icon renders as a hard-cornered
-  square in the Dock. Don't reuse the flat, full-bleed iOS icon art for macOS
+- The app icon is the Icon Composer document `App/AppIcon.icon` (layer SVGs
+  in its `Assets/`, colors per appearance in `icon.json`); README.md's "Icon"
+  section has details. There is no `.appiconset`: Xcode 26's `actool` builds
+  the Liquid Glass icon (macOS/iOS 26+) and the flat fallbacks (squircle +
+  shadow `.icns` for macOS 14/15, opaque PNGs for iOS 17-25) from it. Keep it
+  that way; don't reintroduce hand-made fallback PNGs
+- Icon Composer layers must be filled shapes: a stroked `fill="none"` shape
+  renders as a solid fill. Text goes in as a glyph outline path (the legend
+  is Go Mono Bold's "u", extracted via CoreText), never as SVG `<text>`
+- Every opaque layer needs explicit `tinted` fills in `icon.json` (dark
+  surfaces, white legend; the translucent `walls` overlay needs none); tinted and clear map luminance, so light-on-light art turns
+  into a blank tile. Verify icon changes by rendering every appearance with
+  Icon Composer's `ictool` (`Default`, `Dark`, `TintedDark`, `ClearLight`)
+- The Safari extension icons (`Extension/Resources/images/icon-*.png`) are
+  derived from the app icon: after changing `App/AppIcon.icon`, run
+  `./design/generate-icons.sh` to regenerate them. Never edit the PNGs by hand
 - When adding a search engine, keep `manifest.json` (`host_permissions`),
   `rules.json` (static redirect rule), and `background.js` (`ENGINES` entry) in
   sync — see "Adding a search engine" in `README.md`

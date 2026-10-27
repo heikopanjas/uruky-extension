@@ -1,6 +1,6 @@
 # Project Instructions for AI Coding Agents
 
-**Last updated:** 2026-10-27 (4)
+**Last updated:** 2026-10-27 (8)
 
 <!-- {preamble} -->
 
@@ -116,6 +116,15 @@ When initializing a session or analyzing the workspace, refer to instruction fil
 - `./build.sh install-ios [device name]` — Release build installed to a
   paired physical iOS/iPadOS device via `xcrun devicectl` (name only needed
   when more than one device is paired)
+- `./build.sh notarize` — Developer ID archive + export (`exportOptions.plist`),
+  notarization via the `notarytool` keychain profile `$NOTARIZE_PROFILE`
+  (default `Panjas-Notarize`, the team's App Store Connect API key,
+  shared with the user's other Developer ID projects), stapling, and a
+  distributable zip in `.build/Distribution`. Never run it without being
+  asked: it uploads the build to Apple
+- `ENABLE_HARDENED_RUNTIME` lives in `project.yml`'s base settings so the
+  extension `.appex` gets it too; notarization rejects any executable
+  without it. Don't move it back onto a single target
 - All `xcodebuild` invocations in `build.sh` pass `DEVELOPMENT_TEAM=8J2G689FCZ`
   and `-allowProvisioningUpdates` explicitly, so signing doesn't depend on
   whichever team Xcode's automatic signing happens to pick locally

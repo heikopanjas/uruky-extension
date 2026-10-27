@@ -9,6 +9,10 @@ DEVELOPMENT_TEAM="8J2G689FCZ"
 APP_NAME="Uruky for Safari"
 APP_BUNDLE_ID="com.panjas.StartpageForSafari"
 INSTALLED_APP="/Applications/${APP_NAME}.app"
+DIST_DIR="$BUILD_DIR/Distribution"
+# notarytool keychain profile holding the App Store Connect API key; create it
+# once with `xcrun notarytool store-credentials` (see README.md)
+NOTARIZE_PROFILE="${NOTARIZE_PROFILE:-Panjas-Notarize}"
 
 usage() {
 	cat <<EOF
@@ -26,6 +30,10 @@ Commands:
                           Build a Release app for a paired physical iOS/iPadOS
                           device and install it. Omit the device name when
                           exactly one device is paired.
+  notarize                Archive a Developer ID signed macOS app, notarize and
+                          staple it, and zip it for distribution into
+                          $DIST_DIR (keychain profile: \$NOTARIZE_PROFILE,
+                          default Panjas-Notarize)
   clean                   Remove the generated project and build artifacts
 EOF
 }
@@ -190,6 +198,59 @@ install_ios() {
 	xcrun devicectl device process launch --device "$devicectl_id" "$APP_BUNDLE_ID"
 }
 
+notarize() {
+	ensure_project
+	local archive="$DIST_DIR/${APP_NAME}.xcarchive"
+	local export_dir="$DIST_DIR/Export"
+	local app="$export_dir/${APP_NAME}.app"
+	local submission="$DIST_DIR/${APP_NAME// /-}-notarization.zip"
+	local result="$DIST_DIR/notarization.json"
+	rm -rf "$DIST_DIR"
+	mkdir -p "$DIST_DIR"
+
+	xcodebuild archive -project "$XCODEPROJ" -scheme "$SCHEME" \
+		-configuration Release \
+		-derivedDataPath "$BUILD_DIR" \
+		-destination 'generic/platform=macOS' \
+		-archivePath "$archive" \
+		-allowProvisioningUpdates \
+		DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
+
+	# Re-signs the app and the embedded extension with the Developer ID
+	# Application certificate (exportOptions.plist).
+	xcodebuild -exportArchive \
+		-archivePath "$archive" \
+		-exportPath "$export_dir" \
+		-exportOptionsPlist exportOptions.plist
+
+	ditto -c -k --keepParent "$app" "$submission"
+	# Judge the outcome by the reported status, not the exit code, so a
+	# rejection still prints Apple's log of what failed.
+	xcrun notarytool submit "$submission" --keychain-profile "$NOTARIZE_PROFILE" \
+		--wait --output-format json >"$result" || true
+	local id status
+	read -r id status < <(python3 -c 'import json, sys
+r = json.load(open(sys.argv[1]))
+print(r.get("id", "-"), r.get("status", "-"))' "$result" 2>/dev/null || echo "- -")
+	if [[ "$status" != "Accepted" ]]; then
+		echo "error: notarization failed (status: $status)" >&2
+		cat "$result" >&2
+		[[ "$id" == "-" ]] || xcrun notarytool log "$id" --keychain-profile "$NOTARIZE_PROFILE" >&2
+		exit 1
+	fi
+
+	xcrun stapler staple "$app"
+	codesign --verify --deep --strict --verbose=2 "$app"
+	spctl --assess --type execute --verbose=2 "$app"
+
+	local version
+	version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$app/Contents/Info.plist")
+	local zip="$DIST_DIR/${APP_NAME// /-}-${version}.zip"
+	ditto -c -k --keepParent "$app" "$zip"
+	rm -f "$submission" "$result"
+	echo "Distributable: $zip"
+}
+
 clean() {
 	rm -rf "$XCODEPROJ" "$BUILD_DIR"
 }
@@ -202,6 +263,7 @@ build) build "${2:-debug}" ;;
 build-ios) build_ios "${2:-debug}" ;;
 install) install ;;
 install-ios) install_ios "${2:-}" ;;
+notarize) notarize ;;
 clean) clean ;;
 *)
 	usage

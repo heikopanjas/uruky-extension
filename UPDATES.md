@@ -4,6 +4,67 @@ This file is the append-only log of project decisions and notable changes, maint
 
 <!-- {changelog} -->
 
+### 2026-10-27 (v1.3.6, 12:15 switch to the team-named Panjas-Notarize profile)
+
+- `DashboardOfDoom-Notarize` and the briefly considered
+  `developer-id-notarization` were both misleading names for a profile all
+  projects share: one names a single app, the other a certificate type the
+  profile does not hold (it only holds the api key)
+- the user created `Panjas-Notarize` (`<owner>-Notarize`, matching the
+  existing `<App>-Notarize` naming); verified it authenticates and sees
+  the same team history, then made it the default
+- readme documents how to recreate it on a new machine with
+  `store-credentials`
+- version stays 1.3.6: same uncommitted change set
+
+### 2026-10-27 (v1.3.6, 12:05 default to the DashboardOfDoom-Notarize profile)
+
+- the first `./build.sh notarize` run failed at upload: no keychain profile
+  named `developer-id-notarization` exists (confirmed by the user in their
+  own shell, so not a sandbox issue); archive and export had succeeded
+- the profile that works is `DashboardOfDoom-Notarize`; its submission
+  history shows every project of the team (tokentorch, slopctl, senor
+  particle, ...) notarizes through it, so it is the shared profile despite
+  its name and is now the default
+- the submission zip is now named `Uruky-for-Safari-notarization.zip`
+  instead of `notarization.zip`, since notarytool history identifies
+  submissions only by file name and that generic name was already in use
+- version stays 1.3.6: same uncommitted change set
+
+### 2026-10-27 (v1.3.6, 11:58 use the shared developer-id-notarization profile)
+
+- per user, the notarytool keychain profile is `developer-id-notarization`,
+  the one used by the dashboard-of-doom project; made it the default
+  instead of `Uruky-Notarize`
+- renamed the override variable `NOTARY_PROFILE` to `NOTARIZE_PROFILE`, the
+  name the dashboard-of-doom and senor-particle build scripts use, so one
+  shell setting works across all three projects
+- version stays 1.3.6: same uncommitted change set as the entry below
+
+### 2026-10-27 (v1.3.6, 11:50 add notarize command for direct distribution)
+
+- added `./build.sh notarize`: release archive, developer id export, upload
+  with notarytool, staple, `codesign`/`spctl` verification, and a
+  distributable `Uruky-for-Safari-<version>.zip` in `.build/Distribution`
+- modeled on the senor-particle project per user's direction: same
+  `exportOptions.plist` (developer-id, manual signing, no provisioning
+  profiles since the entitlements are sandbox-only) and the same
+  approach of an app store connect api key in a notarytool keychain
+  profile; profile name defaults to `Uruky-Notarize`, overridable via
+  `NOTARY_PROFILE` so an existing profile for the same team can be reused
+- the outcome is judged by the json status rather than the exit code, and
+  a rejection prints apple's notarization log before failing, as the
+  senor-particle ci does
+- fix: the extension appex was built without the hardened runtime
+  (`ENABLE_HARDENED_RUNTIME` was set on the app target only), which
+  notarization rejects; moved the setting to the project base settings
+- verified locally up to export: archive and export succeed, app and appex
+  both signed with developer id application (8J2G689FCZ) with the runtime
+  flag, `codesign --verify --deep --strict` passes, no get-task-allow;
+  the upload to apple was not run
+- version bump: 1.3.5 to 1.3.6 (PATCH - build tooling and signing fix, no
+  change to app or extension behavior)
+
 ### 2026-10-27 (v1.3.5, 11:35 declare supported interface orientations)
 
 - the ios build warned that all interface orientations must be supported

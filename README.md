@@ -32,6 +32,37 @@ running from Xcode), enable the extension in Safari's settings, then set
 Safari's own search engine to DuckDuckGo or Ecosia and enable only that
 engine in the extension's options page.
 
+### Distributing the macOS app outside the App Store
+
+```sh
+./build.sh notarize   # -> .build/Distribution/Uruky-for-Safari-<version>.zip
+```
+
+This archives a Release build, exports it signed with the team's Developer
+ID Application certificate (`exportOptions.plist`, manual signing; the
+entitlements are sandbox-only, so no provisioning profiles are needed),
+notarizes it, staples the ticket, verifies it with `codesign` and `spctl`,
+and zips the stapled app with `ditto`. If Apple rejects the upload, the
+script prints the notarization log and stops.
+
+Notarization authenticates with the team's App Store Connect API key,
+stored in the `notarytool` keychain profile `Panjas-Notarize`, which is
+shared by all of the team's Developer ID projects. Override it with
+`NOTARIZE_PROFILE=<profile> ./build.sh notarize`, the same variable those
+projects' build scripts use. The submission is uploaded as
+`Uruky-for-Safari-notarization.zip`, so it is identifiable in
+`xcrun notarytool history`. On a new machine, create the profile once from
+the API key (App Store Connect, Users and Access, Integrations):
+
+```sh
+xcrun notarytool store-credentials Panjas-Notarize \
+  --key /path/to/AuthKey_<KEY_ID>.p8 --key-id <KEY_ID> --issuer <ISSUER_ID>
+```
+
+Notarization requires the hardened runtime on every executable,
+which is why `ENABLE_HARDENED_RUNTIME` sits in `project.yml`'s base settings
+rather than on the App target only: the embedded `.appex` needs it too.
+
 ## The fundamental limitation
 
 Safari has no API for adding a custom search engine, and has not had one in
